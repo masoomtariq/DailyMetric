@@ -3,83 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Command - Habit Tracker</title>
+    <title>Habit Tracker - Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 50px; max-width: 600px; margin: auto; }
-        .input-group { display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; font-size: 16px; }
-        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #218838; }
-        pre { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; overflow-x: auto; min-height: 100px; }
-        #logoutBtn { background-color: #dc3545; margin-bottom: 20px; padding: 5px 10px; float: right; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+        #outputBox { background: #f4f4f4; padding: 15px; min-height: 100px; margin-bottom: 15px; border-radius: 5px; white-space: pre-wrap; }
+        input, button { padding: 10px; margin: 5px 0; }
+        input[type="text"] { width: 75%; }
+        button { cursor: pointer; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
-
-    <button id="logoutBtn" onclick="logout()">Logout</button>
-    <h2>Habit Tracker Chat</h2>
-    <p>Enter your command (e.g., <code>/activity --name "Sample" -d 2026-06-21</code>):</p>
+    <div class="header">
+        <h2>Habit Tracker AI</h2>
+        <button onclick="logout()">Logout</button>
+    </div>
     
-    <form id="chatForm">
-        <div class="input-group">
-            <input type="text" id="commandInput" placeholder="Type a command..." required>
-            <button type="submit">Send</button>
-        </div>
-    </form>
-
-    <h3>Response:</h3>
-    <pre id="output">No response yet...</pre>
+    <div id="outputBox">Ready for your command...</div>
+    
+    <input type="text" id="command" placeholder="E.g., Log 2 hours of reading">
+    <button onclick="sendCommand()">Send</button>
 
     <script>
-        // 1. On page load, verify we have a token
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            alert("You are not logged in! Redirecting to login page.");
+        // Immediately redirect if no access token is found
+        if (!localStorage.getItem("access_token")) {
             window.location.href = "index.html";
         }
 
-        function logout() {
-            localStorage.removeItem("access_token");
-            window.location.href = "index.html";
-        }
+        async function sendCommand() {
+            const commandInput = document.getElementById("command");
+            const command = commandInput.value.trim();
+            const outputBox = document.getElementById("outputBox");
+            let token = localStorage.getItem("access_token");
 
-        // 2. Handle form submission
-        document.getElementById("chatForm").addEventListener("submit", async function(event) {
-            event.preventDefault(); // Prevent page reload
-            
-            const command = document.getElementById("commandInput").value;
-            const outputBox = document.getElementById("output");
-            outputBox.innerText = "Loading...";
+            if (!command) return;
+
+            outputBox.innerText = "Processing...";
+            commandInput.value = ""; 
 
             try {
-                // Call your /chat endpoint
-                const response = await fetch("https://masoomtariq-habit-tracker.hf.space/chat", {
+                let response = await fetch("https://masoomtariq-habit-tracker.hf.space/chat", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}` // Pass the token here
+                        "Authorization": `Bearer ${token}` 
                     },
-                    // Because FastAPI has Body(..., embed=True), we wrap the command in a JSON object
                     body: JSON.stringify({ command: command }) 
                 });
 
-                const data = await response.json();
-
-                // If token is expired or invalid
+                // --- NEW REFRESH INTERCEPTOR LOGIC ---
                 if (response.status === 401) {
-                    alert("Session expired. Please log in again.");
-                    logout();
-                    return;
+                    outputBox.innerText = "Session expired. Attempting to refresh...";
+                    
+                    // Ping the refresh endpoint. The browser automatically sends the HttpOnly cookie.
+                    const refreshResponse = await fetch("https://masoomtariq-habit-tracker.hf.space/auth/refresh", {
+                        method: "POST",
+                        credentials: "include" 
+                    });
+
+                    if (refreshResponse.ok) {
+                        const refreshData = await refreshResponse.json();
+                        
+                        // Save the new access token
+                        localStorage.setItem("access_token", refreshData.access_token);
+                        token = refreshData.access_token; 
+                        
+                        outputBox.innerText = "Session refreshed. Retrying command...";
+
+                        // Retry the original command with the fresh token
+                        response = await fetch("https://masoomtariq-habit-tracker.hf.space/chat", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}` 
+                            },
+                            body: JSON.stringify({ command: command }) 
+                        });
+                    } else {
+                        // The refresh token has also expired (e.g., 7 days passed)
+                        alert("Your session has permanently expired. Please log in again.");
+                        logout();
+                        return;
+                    }
+                }
+                // --- END INTERCEPTOR LOGIC ---
+
+                if (response.ok) {
+                    const data = await response.json();
+                    outputBox.innerText = JSON.stringify(data, null, 2);
+                } else {
+                    const errorData = await response.json();
+                    outputBox.innerText = `Error: ${errorData.detail || "Failed to process command"}`;
                 }
 
-                // Pretty print the JSON response into the <pre> block
-                outputBox.innerText = JSON.stringify(data, null, 2);
-
             } catch (error) {
-                outputBox.innerText = "Error: Failed to connect to backend.\n" + error;
-                console.error(error);
+                console.error("Request failed:", error);
+                outputBox.innerText = "A network error occurred. Please try again.";
             }
-        });
+        }
+
+        function logout() {
+            // Clear local storage and redirect
+            localStorage.removeItem("access_token");
+            window.location.href = "index.html";
+        }
     </script>
 </body>
 </html>
