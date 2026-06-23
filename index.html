@@ -30,15 +30,14 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ phone_number, password }),
-                    // REQUIRED: Tells the browser to accept the HttpOnly refresh cookie
-                    credentials: "include" 
+                    body: JSON.stringify({ phone_number, password })
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Save ONLY the short-lived access_token in local storage
+                    // Save both tokens to local storage
                     localStorage.setItem("access_token", data.access_token);
+                    localStorage.setItem("refresh_token", data.refresh_token);
                     window.location.href = "chat.html";
                 } else {
                     const errorData = await response.json();
