@@ -98,7 +98,7 @@
                     outputBox.innerText = JSON.stringify(data, null, 2);
                 } else {
                     const errorData = await response.json();
-                    outputBox.innerText = `Error: ${errorData.detail || "Failed to process command"}`;
+                    outputBox.innerText = `Error: Failed to process command --> ${JSON.stringify(errorData, null, 2)}`;
                 }
 
             } catch (error) {
