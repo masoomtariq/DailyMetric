@@ -150,39 +150,30 @@
             </div>
 
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> User Activities Log
                         </h3>
-                        <p class="text-xs text-slate-500">Fetch and review your recorded activities in real-time.</p>
+                        <p class="text-xs text-slate-500">Fetch and review your recorded activities.</p>
                     </div>
-                    <button onclick="loadRecentActivities()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 transition-all">
-                        <i class="fa-solid fa-rotate"></i> Load Activities
-                    </button>
+                    
+                    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <select id="dateDropdown" class="flex-grow sm:flex-grow-0 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl py-2.5 px-3 outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
+                            <option value="" disabled selected>Click to load dates...</option>
+                        </select>
+                        
+                        <button onclick="loadAllActivities()" class="flex-grow sm:flex-grow-0 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all">
+                            <i class="fa-solid fa-layer-group"></i> Load All
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-xs text-left text-slate-500">
-                        <thead class="text-xs text-slate-700 uppercase bg-slate-50/80">
-                            <tr>
-                                <th class="px-4 py-3 rounded-l-lg">Date</th>
-                                <th class="px-4 py-3">Category</th>
-                                <th class="px-4 py-3">Type</th>
-                                <th class="px-4 py-3">Duration</th>
-                                <th class="px-4 py-3">What I Did</th>
-                                <th class="px-4 py-3 rounded-r-lg">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activities-table-body">
-                            <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-slate-400">
-                                    <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
-                                    Click "Load Activities" to retrieve log history
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="activityResults">
+                    <div class="px-4 py-8 text-center text-slate-400">
+                        <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
+                        Select a date or click "Load All" to view activities.
+                    </div>
                 </div>
             </div>
         </section>
@@ -199,6 +190,8 @@
         const state = {
             token: localStorage.getItem('token') || '',
         };
+
+        let datesLoaded = false;
 
         const getTodayDateString = () => {
             const d = new Date();
@@ -411,12 +404,19 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             if (!state.token) {
-                window.location.href = 'index.html'; // Redirect if no token
+                window.location.href = 'index.html';
                 return;
             }
             updateUserBadge();
             handleEntityTypeChange();
-            loadRecentActivities();
+
+            // Set up Dropdown Events
+            const dateDropdown = document.getElementById('dateDropdown');
+            if (dateDropdown) {
+                dateDropdown.addEventListener('focus', fetchActiveDates);
+                dateDropdown.addEventListener('click', fetchActiveDates);
+                dateDropdown.addEventListener('change', fetchActivitiesByDate);
+            }
         });
 
         function getApiUrl() {
@@ -441,7 +441,7 @@
 
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
         }
 
         function getSelectedEntityType() {
@@ -449,7 +449,6 @@
             return checked ? checked.value : 'goal';
         }
 
-        // Toggles visibility of specific fields dynamically based on category
         function handleCategoryChange() {
             const categorySelect = document.getElementById('field-activity-category');
             if (!categorySelect) return;
@@ -478,7 +477,6 @@
                 btn.className = "bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
             } else {
                 btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
-                // Trigger view layout dynamically when activity is selected
                 if(typeof handleCategoryChange === 'function') handleCategoryChange();
             }
         }
@@ -525,7 +523,6 @@
             return timeStr;
         }
 
-        // Helper to grab only fields that are currently visible to the user
         const getVisibleValue = (id) => {
             const el = document.getElementById(id);
             if (!el) return null;
@@ -625,7 +622,11 @@
                 if (response.ok) {
                     logToConsole(`Successfully created ${entity.toUpperCase()} entry!`, data, 'success');
                     resetFormFieldsExceptDate(entity);
-                    loadRecentActivities();
+                    // Instead of auto-loading, just alert user or refresh if a date is selected
+                    const dropdown = document.getElementById('dateDropdown');
+                    if (dropdown.value) {
+                        fetchActivitiesByDate({ target: { value: dropdown.value } });
+                    }
                 } else {
                     logToConsole(`Server rejected submission with status: ${response.status}`, data, 'error');
                 }
@@ -643,13 +644,11 @@
                     document.getElementById(`field-daylog-${id}`).value = '';
                 });
             } else if (entity === 'activity') {
-                // Clear text inputs
                 ['goal','typename','time','duration','location','quantity','what','result','note','details','sets','reps'].forEach(id => {
                     const el = document.getElementById(`field-activity-${id}`);
                     if (el) el.value = '';
                 });
                 
-                // Reset toggles to default (checked)
                 const ontime = document.getElementById('field-activity-ontime');
                 if (ontime) ontime.checked = true;
                 const status = document.getElementById('field-activity-status');
@@ -657,11 +656,129 @@
             }
         }
 
-        async function loadRecentActivities() {
-            const tbody = document.getElementById('activities-table-body');
+        /* ------------------------------------------------------------------
+           TASK 1: Lazy-Loading Active Dates 
+           ------------------------------------------------------------------ */
+        async function fetchActiveDates() {
+            if (datesLoaded) return;
+            
+            const dropdown = document.getElementById('dateDropdown');
+            dropdown.innerHTML = '<option value="" disabled selected>Loading dates...</option>';
+            
+            const apiBase = getApiUrl();
+            try {
+                const response = await fetch(`${apiBase}/daylogs/active-dates`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    dropdown.innerHTML = '<option value="" disabled selected>Select a date...</option>';
+                    
+                    const dates = resData.data || resData || [];
+                    dates.forEach(date => {
+                        const opt = document.createElement('option');
+                        opt.value = date;
+                        opt.textContent = date;
+                        dropdown.appendChild(opt);
+                    });
+                    datesLoaded = true;
+                } else {
+                    dropdown.innerHTML = '<option value="" disabled selected>Error loading dates</option>';
+                }
+            } catch (err) {
+                dropdown.innerHTML = '<option value="" disabled selected>Error loading dates</option>';
+            }
+        }
+
+        /* ------------------------------------------------------------------
+           TASK 2: Fetching Activities for a Specific Date
+           ------------------------------------------------------------------ */
+        async function fetchActivitiesByDate(e) {
+            const selectedDate = e.target.value;
+            if (!selectedDate) return;
+            
+            const resultsDiv = document.getElementById('activityResults');
+            resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch animate-spin text-2xl mb-2 block text-primary-500"></i>Loading activities...</div>`;
+            
+            const apiBase = getApiUrl();
+            try {
+                const response = await fetch(`${apiBase}/activities/by-date/${selectedDate}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    const activities = (resData.data && resData.data.activities) || resData.activities || resData.data || [];
+                    renderActivitiesTable(activities);
+                } else {
+                    resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>Failed to load activities (Status ${response.status})</div>`;
+                }
+            } catch (err) {
+                resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-wifi text-2xl mb-2 block"></i>Connection Error: ${err.toString()}</div>`;
+            }
+        }
+
+        // Shared Render Function
+        function renderActivitiesTable(activities) {
+            const resultsDiv = document.getElementById('activityResults');
+            
+            if (!activities || activities.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="px-4 py-8 text-center text-slate-400">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
+                        No activities found for this selection.
+                    </div>`;
+                return;
+            }
+
+            const rowsHtml = activities.reverse().map(act => {
+                const statusBadge = act.active_status !== false
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Active / Done</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-50 text-slate-600 border border-slate-200">Inactive</span>`;
+                const durationText = act.duration_min ? `${act.duration_min} min` : '<span class="text-slate-300">-</span>';
+                    
+                return `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-all font-medium text-slate-700">
+                        <td class="px-4 py-3 font-mono whitespace-nowrap">${act.entry_date}</td>
+                        <td class="px-4 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-600">${act.category}</span></td>
+                        <td class="px-4 py-3 font-semibold text-slate-900">${act.activity_type_name}</td>
+                        <td class="px-4 py-3">${durationText}</td>
+                        <td class="px-4 py-3 max-w-[200px] truncate text-slate-500" title="${act.what_i_did || ''}">${act.what_i_did || '<span class="text-slate-300">-</span>'}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            resultsDiv.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs text-left text-slate-500">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-50/80">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Date</th>
+                                <th class="px-4 py-3">Category</th>
+                                <th class="px-4 py-3">Type</th>
+                                <th class="px-4 py-3">Duration</th>
+                                <th class="px-4 py-3">What I Did</th>
+                                <th class="px-4 py-3 rounded-r-lg">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Fetch All Trigger
+        async function loadAllActivities() {
+            const resultsDiv = document.getElementById('activityResults');
             const apiBase = getApiUrl();
             
-            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch animate-spin text-2xl mb-2 block text-primary-500"></i>Fetching activities from server...</td></tr>`;
+            resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch animate-spin text-2xl mb-2 block text-primary-500"></i>Fetching all activities...</div>`;
 
             try {
                 const response = await fetch(`${apiBase}/activities/all_activities`, {
@@ -669,39 +786,19 @@
                     headers: { 'Authorization': `Bearer ${state.token}` }
                 });
 
-                const resData = await response.json();
-
                 if (response.ok) {
-                    const activities = (resData.data && resData.data.activities) || resData.activities || [];
+                    const resData = await response.json();
+                    const activities = (resData.data && resData.data.activities) || resData.activities || resData.data || [];
+                    renderActivitiesTable(activities);
                     
-                    if (activities.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400"><i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>No activities found. Submit some using the form above!</td></tr>`;
-                        return;
-                    }
-
-                    tbody.innerHTML = activities.reverse().map(act => {
-                        const statusBadge = act.active_status !== false
-                            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Active / Done</span>`
-                            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-50 text-slate-600 border border-slate-200">Inactive</span>`;
-                        const durationText = act.duration_min ? `${act.duration_min} min` : '<span class="text-slate-300">-</span>';
-                            
-                        return `
-                            <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-all font-medium text-slate-700">
-                                <td class="px-4 py-3 font-mono whitespace-nowrap">${act.entry_date}</td>
-                                <td class="px-4 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-600">${act.category}</span></td>
-                                <td class="px-4 py-3 font-semibold text-slate-900">${act.activity_type_name}</td>
-                                <td class="px-4 py-3">${durationText}</td>
-                                <td class="px-4 py-3 max-w-[200px] truncate text-slate-500" title="${act.what_i_did || ''}">${act.what_i_did || '<span class="text-slate-300">-</span>'}</td>
-                                <td class="px-4 py-3">${statusBadge}</td>
-                            </tr>
-                        `;
-                    }).join('');
-
+                    // Reset dropdown visual state
+                    const dropdown = document.getElementById('dateDropdown');
+                    if(dropdown && datesLoaded) dropdown.value = "";
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>Failed to load activities (Status ${response.status})</td></tr>`;
+                    resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>Failed to load activities (Status ${response.status})</div>`;
                 }
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-wifi text-2xl mb-2 block"></i>Connection Error: ${err.toString()}</td></tr>`;
+                resultsDiv.innerHTML = `<div class="px-4 py-8 text-center text-rose-500 font-semibold"><i class="fa-solid fa-wifi text-2xl mb-2 block"></i>Connection Error: ${err.toString()}</div>`;
             }
         }
     </script>
