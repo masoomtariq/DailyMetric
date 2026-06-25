@@ -208,7 +208,6 @@
             return `${year}-${month}-${day}`;
         };
 
-        // Form templates identical to original
         const FormTemplates = {
             goal: () => `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -309,7 +308,7 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category *</label>
-                        <select id="field-activity-category" required 
+                        <select id="field-activity-category" required onchange="handleCategoryChange()"
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                             <option value="habit">habit</option>
                             <option value="prayer">prayer</option>
@@ -319,13 +318,31 @@
                         </select>
                     </div>
 
-                    <div>
+                    <div class="activity-dynamic-field cat-meal cat-exercise cat-productivity cat-habit hidden">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Occurred</label>
                         <input type="time" id="field-activity-time" 
                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                     </div>
 
-                    <div>
+                    <div class="activity-dynamic-field cat-prayer cat-meal cat-habit hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Done</label>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" id="field-activity-status" class="sr-only peer" checked>
+                            <div class="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            <span class="ms-3 text-sm font-semibold text-slate-700">Completed</span>
+                        </label>
+                    </div>
+
+                    <div class="activity-dynamic-field cat-prayer hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">On Time</label>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" id="field-activity-ontime" class="sr-only peer" checked>
+                            <div class="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            <span class="ms-3 text-sm font-semibold text-slate-700">Yes</span>
+                        </label>
+                    </div>
+
+                    <div class="activity-dynamic-field cat-exercise cat-productivity cat-habit hidden">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
                         <div class="flex items-center gap-6 mb-2">
                             <label class="inline-flex items-center text-xs font-semibold text-slate-600 cursor-pointer">
@@ -341,34 +358,37 @@
                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-2 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location</label>
+                    <div class="activity-dynamic-field cat-prayer cat-meal cat-exercise cat-productivity hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Place</label>
                         <input type="text" id="field-activity-location" placeholder="e.g. Gym, Library, Home" 
                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity (e.g. steps/pages)</label>
-                        <input type="text" id="field-activity-quantity" placeholder="e.g. 5000 steps, 2 chapters" 
+                    <div class="activity-dynamic-field cat-meal hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity</label>
+                        <input type="text" id="field-activity-quantity" placeholder="e.g. 1 bowl, 500 calories" 
                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Status</label>
-                        <label class="inline-flex items-center cursor-pointer select-none">
-                            <input type="checkbox" id="field-activity-status" class="sr-only peer" checked>
-                            <div class="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            <span class="ms-3 text-sm font-semibold text-slate-700">Active</span>
-                        </label>
+                    <div class="activity-dynamic-field cat-exercise hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sets</label>
+                        <input type="number" id="field-activity-sets" placeholder="e.g. 3" 
+                               class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="activity-dynamic-field cat-exercise hidden">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reps</label>
+                        <input type="number" id="field-activity-reps" placeholder="e.g. 12" 
+                               class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100">
+                    </div>
+
+                    <div class="md:col-span-2 activity-dynamic-field cat-productivity hidden">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What I Did</label>
                         <textarea id="field-activity-what" rows="3" placeholder="Explain the dynamic event details..." 
                                   class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"></textarea>
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-2 activity-dynamic-field cat-productivity hidden">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Result Text</label>
                         <textarea id="field-activity-result" rows="3" placeholder="What was the outcome? How did you feel?..." 
                                   class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"></textarea>
@@ -429,6 +449,22 @@
             return checked ? checked.value : 'goal';
         }
 
+        // Toggles visibility of specific fields dynamically based on category
+        function handleCategoryChange() {
+            const categorySelect = document.getElementById('field-activity-category');
+            if (!categorySelect) return;
+            const category = categorySelect.value;
+            const dynamicFields = document.querySelectorAll('.activity-dynamic-field');
+
+            dynamicFields.forEach(el => {
+                if (el.classList.contains('cat-' + category)) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
         function handleEntityTypeChange() {
             const entity = getSelectedEntityType();
             const container = document.getElementById('dynamic-fields-target');
@@ -442,6 +478,8 @@
                 btn.className = "bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
             } else {
                 btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
+                // Trigger view layout dynamically when activity is selected
+                if(typeof handleCategoryChange === 'function') handleCategoryChange();
             }
         }
 
@@ -487,6 +525,17 @@
             return timeStr;
         }
 
+        // Helper to grab only fields that are currently visible to the user
+        const getVisibleValue = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const wrapper = el.closest('.activity-dynamic-field');
+            if (wrapper && wrapper.classList.contains('hidden')) return null;
+            
+            if (el.type === 'checkbox') return el.checked;
+            return el.value.trim() !== '' ? el.value.trim() : null;
+        };
+
         async function handleFormSubmission(event) {
             event.preventDefault();
             const entity = getSelectedEntityType();
@@ -520,11 +569,12 @@
                     };
                 } else if (entity === 'activity') {
                     endpoint = `${apiBase}/activities/add_activity`;
-                    const durationInput = document.getElementById('field-activity-duration').value;
+                    
                     let durationMin = null;
-                    if (durationInput !== '') {
+                    const durationStr = getVisibleValue('field-activity-duration');
+                    if (durationStr !== null) {
                         const unit = document.querySelector('input[name="duration-unit"]:checked').value;
-                        const durationFloat = parseFloat(durationInput);
+                        const durationFloat = parseFloat(durationStr);
                         durationMin = unit === 'hr' ? Math.round(durationFloat * 60) : Math.round(durationFloat);
                     }
 
@@ -544,15 +594,18 @@
                         entry_date: document.getElementById('field-activity-date').value,
                         activity_type_name: document.getElementById('field-activity-typename').value.trim(),
                         category: document.getElementById('field-activity-category').value,
-                        active_status: document.getElementById('field-activity-status').checked,
-                        occurred_at: formatTimeWithSeconds(document.getElementById('field-activity-time').value || null),
+                        active_status: getVisibleValue('field-activity-status') !== null ? getVisibleValue('field-activity-status') : true,
+                        occurred_at: formatTimeWithSeconds(getVisibleValue('field-activity-time')),
                         duration_min: durationMin,
-                        location: document.getElementById('field-activity-location').value.trim() || null,
-                        quantity_text: document.getElementById('field-activity-quantity').value.trim() || null,
-                        what_i_did: document.getElementById('field-activity-what').value.trim() || null,
-                        result_text: document.getElementById('field-activity-result').value.trim() || null,
+                        location: getVisibleValue('field-activity-location'),
+                        quantity_text: getVisibleValue('field-activity-quantity'),
+                        what_i_did: getVisibleValue('field-activity-what'),
+                        result_text: getVisibleValue('field-activity-result'),
                         note: document.getElementById('field-activity-note').value.trim() || null,
-                        details: detailsJson
+                        details: detailsJson,
+                        on_time: getVisibleValue('field-activity-ontime'),
+                        sets: getVisibleValue('field-activity-sets') !== null ? parseInt(getVisibleValue('field-activity-sets'), 10) : null,
+                        reps: getVisibleValue('field-activity-reps') !== null ? parseInt(getVisibleValue('field-activity-reps'), 10) : null
                     };
                 }
 
@@ -590,9 +643,17 @@
                     document.getElementById(`field-daylog-${id}`).value = '';
                 });
             } else if (entity === 'activity') {
-                ['goal','typename','time','duration','location','quantity','what','result','note','details'].forEach(id => {
-                    document.getElementById(`field-activity-${id}`).value = '';
+                // Clear text inputs
+                ['goal','typename','time','duration','location','quantity','what','result','note','details','sets','reps'].forEach(id => {
+                    const el = document.getElementById(`field-activity-${id}`);
+                    if (el) el.value = '';
                 });
+                
+                // Reset toggles to default (checked)
+                const ontime = document.getElementById('field-activity-ontime');
+                if (ontime) ontime.checked = true;
+                const status = document.getElementById('field-activity-status');
+                if (status) status.checked = true;
             }
         }
 
@@ -619,8 +680,8 @@
                     }
 
                     tbody.innerHTML = activities.reverse().map(act => {
-                        const statusBadge = act.active_status 
-                            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>`
+                        const statusBadge = act.active_status !== false
+                            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Active / Done</span>`
                             : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-50 text-slate-600 border border-slate-200">Inactive</span>`;
                         const durationText = act.duration_min ? `${act.duration_min} min` : '<span class="text-slate-300">-</span>';
                             
