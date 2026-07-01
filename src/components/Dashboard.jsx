@@ -43,33 +43,61 @@ const Dashboard = () => {
   const [daylogCalories, setDaylogCalories] = useState('');
   const [daylogNotes, setDaylogNotes] = useState('');
 
-  const [activityGoal, setActivityGoal] = useState('');
-  const [activityDate, setActivityDate] = useState(() => {
+  // Activity form states
+  const [activeGoals, setActiveGoals] = useState([]);
+  const [entryDate, setEntryDate] = useState(() => {
     const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
-  const [activityTypename, setActivityTypename] = useState('');
-  const [activityCategory, setActivityCategory] = useState('habit');
-  const [activityTime, setActivityTime] = useState('');
-  const [activityStatus, setActivityStatus] = useState(true);
-  const [activityOntime, setActivityOntime] = useState(true);
-  const [activityDuration, setActivityDuration] = useState('');
-  const [durationUnit, setDurationUnit] = useState('min');
-  const [activityLocation, setActivityLocation] = useState('');
-  const [activityQuantity, setActivityQuantity] = useState('');
-  const [activitySets, setActivitySets] = useState('');
-  const [activityReps, setActivityReps] = useState('');
-  const [activityWhat, setActivityWhat] = useState('');
-  const [activityResult, setActivityResult] = useState('');
-  const [activityNote, setActivityNote] = useState('');
-  const [activityDetails, setActivityDetails] = useState('');
+  const [category, setCategory] = useState('prayer');
+  const [note, setNote] = useState('');
+  const [type, setType] = useState('');
+  const [customType, setCustomType] = useState('');
+  const [done, setDone] = useState(true);
+  const [place, setPlace] = useState('');
+  const [customPlace, setCustomPlace] = useState('');
+  const [onTime, setOnTime] = useState(true);
+  const [jamaat, setJamaat] = useState(true);
+  const [time, setTime] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [goalNameActivity, setGoalNameActivity] = useState('');
+  const [duration, setDuration] = useState('');
+  const [sets, setSets] = useState('');
+  const [reps, setReps] = useState('');
+  const [whatDid, setWhatDid] = useState('');
+  const [whatResult, setWhatResult] = useState('');
 
   const getApiUrl = () => {
     return apiUrl.trim() || 'http://127.0.0.1:8000';
   };
+
+  const fetchGoals = async () => {
+    const apiBase = getApiUrl();
+    try {
+      const response = await fetch(`${apiBase}/goals/get_goals`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        const goalsList = resData.data || [];
+        setActiveGoals(goalsList);
+      } else {
+        console.error('Goals fetch failed with status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error loading goals:', err);
+    }
+  };
+
+  // Fetch goals on component mount
+  useEffect(() => {
+    fetchGoals();
+  }, []);
 
   const formatTimeWithSeconds = (timeStr) => {
     if (!timeStr) return null;
@@ -120,7 +148,34 @@ const Dashboard = () => {
     };
     
     const visibleCategories = categoryFieldMap[fieldName];
-    return visibleCategories ? visibleCategories.includes(activityCategory) : true;
+    return visibleCategories ? visibleCategories.includes(category) : true;
+  };
+
+  // Reusable "Other" dropdown renderer
+  const renderOtherDropdown = (label, value, onChange, customValue, customOnChange, options, showCustomInput) => {
+    return (
+      <div>
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+        <select 
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+        >
+          {options.map((option, index) => (
+            <option key={index} value={option}>{option}</option>
+          ))}
+        </select>
+        {showCustomInput && (
+          <input 
+            type="text"
+            value={customValue}
+            onChange={(e) => customOnChange(e.target.value)}
+            placeholder="Please specify..."
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+          />
+        )}
+      </div>
+    );
   };
 
   const resetFormFields = () => {
@@ -136,20 +191,30 @@ const Dashboard = () => {
       setDaylogCalories('');
       setDaylogNotes('');
     } else if (entityType === 'activity') {
-      setActivityGoal('');
-      setActivityTypename('');
-      setActivityTime('');
-      setActivityDuration('');
-      setActivityLocation('');
-      setActivityQuantity('');
-      setActivityWhat('');
-      setActivityResult('');
-      setActivityNote('');
-      setActivityDetails('');
-      setActivitySets('');
-      setActivityReps('');
-      setActivityStatus(true);
-      setActivityOntime(true);
+      setEntryDate(() => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      });
+      setCategory('habit');
+      setNote('');
+      setType('');
+      setCustomType('');
+      setDone(true);
+      setPlace('');
+      setCustomPlace('');
+      setOnTime(true);
+      setJamaat(true);
+      setTime('');
+      setQuantity('');
+      setGoalNameActivity('');
+      setDuration('');
+      setSets('');
+      setReps('');
+      setWhatDid('');
+      setWhatResult('');
     }
   };
 
@@ -186,40 +251,60 @@ const Dashboard = () => {
       } else if (entityType === 'activity') {
         endpoint = `${apiBase}/activities/add_activity`;
         
-        let durationMin = null;
-        if (activityDuration !== '') {
-          const durationFloat = parseFloat(activityDuration);
-          durationMin = durationUnit === 'hr' ? Math.round(durationFloat * 60) : Math.round(durationFloat);
-        }
-
-        let detailsJson = null;
-        if (activityDetails.trim() !== '') {
-          try {
-            detailsJson = JSON.parse(activityDetails);
-          } catch (err) {
-            logToConsole("JSON Parsing Error in Activity Metadata!", "Please enter a valid JSON.", "error");
-            return;
+        // Resolve "Other" dropdown values
+        const resolvedType = type === 'Other' || type === 'Others' ? customType : type;
+        const resolvedPlace = place === 'Other' || place === 'Others' ? customPlace : place;
+        
+        // Build the details object based on category and conditions
+        const details = {};
+        
+        if (category === 'prayer') {
+          details.done = done;
+          if (done) {
+            details.place = resolvedPlace;
+            details.on_time = onTime;
+            if (onTime) {
+              details.jamaat = jamaat;
+            }
           }
+        } else if (category === 'meal') {
+          details.done = done;
+          if (done) {
+            details.time = formatTimeWithSeconds(time);
+            details.quantity = quantity;
+            details.place = resolvedPlace;
+          }
+        } else if (category === 'habit') {
+          details.done = done;
+          if (done) {
+            details.time = formatTimeWithSeconds(time);
+          }
+        } else if (category === 'exercise') {
+          details.time = formatTimeWithSeconds(time);
+          details.duration = duration;
+          details.sets = sets !== '' ? parseInt(sets, 10) : null;
+          details.reps = reps !== '' ? parseInt(reps, 10) : null;
+        } else if (category === 'productivity') {
+          details.place = resolvedPlace;
+          details.time = formatTimeWithSeconds(time);
+          details.duration = duration;
+          details.what_did = whatDid;
+          details.what_result = whatResult;
         }
 
+        // Build the root payload
         payload = {
-          goal_name: activityGoal.trim() || null,
-          entry_date: activityDate,
-          activity_type_name: activityTypename.trim(),
-          category: activityCategory,
-          active_status: isFieldVisible('activity-status') ? activityStatus : true,
-          occurred_at: formatTimeWithSeconds(isFieldVisible('activity-time') ? activityTime : null),
-          duration_min: isFieldVisible('activity-duration') ? durationMin : null,
-          location: isFieldVisible('activity-location') ? activityLocation : null,
-          quantity_text: isFieldVisible('activity-quantity') ? activityQuantity : null,
-          what_i_did: isFieldVisible('activity-what') ? activityWhat : null,
-          result_text: isFieldVisible('activity-result') ? activityResult : null,
-          note: activityNote.trim() || null,
-          details: detailsJson,
-          on_time: isFieldVisible('activity-ontime') ? activityOntime : null,
-          sets: isFieldVisible('activity-sets') && activitySets !== '' ? parseInt(activitySets, 10) : null,
-          reps: isFieldVisible('activity-reps') && activityReps !== '' ? parseInt(activityReps, 10) : null
+          entry_date: entryDate,
+          category: category,
+          activity_type_name: resolvedType,
+          note: note.trim() || null,
+          details: details
         };
+
+        // Add goal_name only if not prayer category
+        if (category !== 'prayer' && goalNameActivity) {
+          payload.goal_name = goalNameActivity;
+        }
       }
 
       logToConsole(`Submitting ${entityType.toUpperCase()} data to: ${endpoint}...`, payload, 'info');
@@ -665,36 +750,14 @@ const Dashboard = () => {
 
                   {entityType === 'activity' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Linked Goal Name</label>
-                        <input 
-                          type="text" 
-                          value={activityGoal}
-                          onChange={(e) => setActivityGoal(e.target.value)}
-                          placeholder="e.g. Learn System Design (Must exist)" 
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                        />
-                      </div>
-
+                      {/* Base Fields - Always Visible */}
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Activity Date *</label>
                         <input 
                           type="date" 
-                          value={activityDate}
-                          onChange={(e) => setActivityDate(e.target.value)}
+                          value={entryDate}
+                          onChange={(e) => setEntryDate(e.target.value)}
                           required 
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Activity Type Name *</label>
-                        <input 
-                          type="text" 
-                          value={activityTypename}
-                          onChange={(e) => setActivityTypename(e.target.value)}
-                          required 
-                          placeholder="e.g. Morning Jog" 
                           className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                         />
                       </div>
@@ -702,197 +765,393 @@ const Dashboard = () => {
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category *</label>
                         <select 
-                          value={activityCategory}
-                          onChange={(e) => setActivityCategory(e.target.value)}
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
                           required 
                           className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                         >
-                          <option value="habit">habit</option>
                           <option value="prayer">prayer</option>
                           <option value="meal">meal</option>
+                          <option value="habit">habit</option>
                           <option value="exercise">exercise</option>
                           <option value="productivity">productivity</option>
                         </select>
                       </div>
 
-                      {isFieldVisible('activity-time') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Occurred</label>
-                          <input 
-                            type="time" 
-                            value={activityTime}
-                            onChange={(e) => setActivityTime(e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
-                      )}
+                      {/* Category: Prayer */}
+                      {category === 'prayer' && (
+                        <>
+                          {renderOtherDropdown(
+                            'Type',
+                            type,
+                            setType,
+                            customType,
+                            setCustomType,
+                            ['Fajar', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Other'],
+                            type === 'Other'
+                          )}
 
-                      {isFieldVisible('activity-status') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Done</label>
-                          <label className="inline-flex items-center cursor-pointer select-none">
-                            <input 
-                              type="checkbox" 
-                              checked={activityStatus}
-                              onChange={(e) => setActivityStatus(e.target.checked)}
-                              className="sr-only peer" 
-                            />
-                            <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            <span className="ms-3 text-sm font-semibold text-slate-700">Completed</span>
-                          </label>
-                        </div>
-                      )}
-
-                      {isFieldVisible('activity-ontime') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">On Time</label>
-                          <label className="inline-flex items-center cursor-pointer select-none">
-                            <input 
-                              type="checkbox" 
-                              checked={activityOntime}
-                              onChange={(e) => setActivityOntime(e.target.checked)}
-                              className="sr-only peer" 
-                            />
-                            <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            <span className="ms-3 text-sm font-semibold text-slate-700">Yes</span>
-                          </label>
-                        </div>
-                      )}
-
-                      {isFieldVisible('activity-duration') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
-                          <div className="flex items-center gap-6 mb-2">
-                            <label className="inline-flex items-center text-xs font-semibold text-slate-600 cursor-pointer">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Done</label>
+                            <label className="inline-flex items-center cursor-pointer select-none">
                               <input 
-                                type="radio" 
-                                name="duration-unit" 
-                                value="min" 
-                                checked={durationUnit === 'min'}
-                                onChange={() => setDurationUnit('min')}
-                                className="text-emerald-600 focus:ring-emerald-500 mr-2 h-4 w-4"
+                                type="checkbox" 
+                                checked={done}
+                                onChange={(e) => setDone(e.target.checked)}
+                                className="sr-only peer" 
                               />
-                              Minutes
-                            </label>
-                            <label className="inline-flex items-center text-xs font-semibold text-slate-600 cursor-pointer">
-                              <input 
-                                type="radio" 
-                                name="duration-unit" 
-                                value="hr" 
-                                checked={durationUnit === 'hr'}
-                                onChange={() => setDurationUnit('hr')}
-                                className="text-emerald-600 focus:ring-emerald-500 mr-2 h-4 w-4"
-                              />
-                              Hours
+                              <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                              <span className="ms-3 text-sm font-semibold text-slate-700">Completed</span>
                             </label>
                           </div>
-                          <input 
-                            type="number" 
-                            value={activityDuration}
-                            onChange={(e) => setActivityDuration(e.target.value)}
-                            placeholder="e.g. 45 or 1.5" 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-2 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
+
+                          {done && (
+                            <>
+                              {renderOtherDropdown(
+                                'Place',
+                                place,
+                                setPlace,
+                                customPlace,
+                                setCustomPlace,
+                                ['Masjid', 'Home', 'Work/Prayer Room', 'Others'],
+                                place === 'Others'
+                              )}
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">On Time</label>
+                                <label className="inline-flex items-center cursor-pointer select-none">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={onTime}
+                                    onChange={(e) => setOnTime(e.target.checked)}
+                                    className="sr-only peer" 
+                                  />
+                                  <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                  <span className="ms-3 text-sm font-semibold text-slate-700">Yes</span>
+                                </label>
+                              </div>
+
+                              {onTime && (
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Jamaat</label>
+                                  <label className="inline-flex items-center cursor-pointer select-none">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={jamaat}
+                                      onChange={(e) => setJamaat(e.target.checked)}
+                                      className="sr-only peer" 
+                                    />
+                                    <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    <span className="ms-3 text-sm font-semibold text-slate-700">Yes</span>
+                                  </label>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </>
                       )}
 
-                      {isFieldVisible('activity-location') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Place</label>
-                          <input 
-                            type="text" 
-                            value={activityLocation}
-                            onChange={(e) => setActivityLocation(e.target.value)}
-                            placeholder="e.g. Gym, Library, Home" 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
+                      {/* Category: Meal */}
+                      {category === 'meal' && (
+                        <>
+                          {renderOtherDropdown(
+                            'Type',
+                            type,
+                            setType,
+                            customType,
+                            setCustomType,
+                            ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Others'],
+                            type === 'Others'
+                          )}
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Done</label>
+                            <label className="inline-flex items-center cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                checked={done}
+                                onChange={(e) => setDone(e.target.checked)}
+                                className="sr-only peer" 
+                              />
+                              <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                              <span className="ms-3 text-sm font-semibold text-slate-700">Completed</span>
+                            </label>
+                          </div>
+
+                          {done && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
+                                <select 
+                                  value={goalNameActivity}
+                                  onChange={(e) => setGoalNameActivity(e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                >
+                                  <option value="">Select a goal...</option>
+                                  {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
+                                    <option key={index} value={goal}>{goal}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
+                                <input 
+                                  type="time" 
+                                  value={time}
+                                  onChange={(e) => setTime(e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity</label>
+                                <input 
+                                  type="text" 
+                                  value={quantity}
+                                  onChange={(e) => setQuantity(e.target.value)}
+                                  placeholder="e.g. 1 bowl, 500 calories" 
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                />
+                              </div>
+
+                              {renderOtherDropdown(
+                                'Place',
+                                place,
+                                setPlace,
+                                customPlace,
+                                setCustomPlace,
+                                ['Home', 'Work', 'Others'],
+                                place === 'Others'
+                              )}
+                            </>
+                          )}
+                        </>
                       )}
 
-                      {isFieldVisible('activity-quantity') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity</label>
-                          <input 
-                            type="text" 
-                            value={activityQuantity}
-                            onChange={(e) => setActivityQuantity(e.target.value)}
-                            placeholder="e.g. 1 bowl, 500 calories" 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
+                      {/* Category: Habit */}
+                      {category === 'habit' && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Type</label>
+                            <input 
+                              type="text" 
+                              value={type}
+                              onChange={(e) => setType(e.target.value)}
+                              placeholder="e.g. Reading, Meditation" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Done</label>
+                            <label className="inline-flex items-center cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                checked={done}
+                                onChange={(e) => setDone(e.target.checked)}
+                                className="sr-only peer" 
+                              />
+                              <div className="relative w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                              <span className="ms-3 text-sm font-semibold text-slate-700">Completed</span>
+                            </label>
+                          </div>
+
+                          {done && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
+                                <select 
+                                  value={goalNameActivity}
+                                  onChange={(e) => setGoalNameActivity(e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                >
+                                  <option value="">Select a goal...</option>
+                                  {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
+                                    <option key={index} value={goal}>{goal}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
+                                <input 
+                                  type="time" 
+                                  value={time}
+                                  onChange={(e) => setTime(e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </>
                       )}
 
-                      {isFieldVisible('activity-sets') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sets</label>
-                          <input 
-                            type="number" 
-                            value={activitySets}
-                            onChange={(e) => setActivitySets(e.target.value)}
-                            placeholder="e.g. 3" 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
+                      {/* Category: Exercise */}
+                      {category === 'exercise' && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
+                            <select 
+                              value={goalNameActivity}
+                              onChange={(e) => setGoalNameActivity(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            >
+                              <option value="">Select a goal...</option>
+                              {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
+                                <option key={index} value={goal}>{goal}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Type</label>
+                            <input 
+                              type="text" 
+                              value={type}
+                              onChange={(e) => setType(e.target.value)}
+                              placeholder="e.g. Running, Weightlifting" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
+                            <input 
+                              type="time" 
+                              value={time}
+                              onChange={(e) => setTime(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
+                            <input 
+                              type="text" 
+                              value={duration}
+                              onChange={(e) => setDuration(e.target.value)}
+                              placeholder="e.g. 45 min" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sets</label>
+                            <input 
+                              type="number" 
+                              value={sets}
+                              onChange={(e) => setSets(e.target.value)}
+                              placeholder="e.g. 3" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reps</label>
+                            <input 
+                              type="number" 
+                              value={reps}
+                              onChange={(e) => setReps(e.target.value)}
+                              placeholder="e.g. 12" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+                        </>
                       )}
 
-                      {isFieldVisible('activity-reps') && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reps</label>
-                          <input 
-                            type="number" 
-                            value={activityReps}
-                            onChange={(e) => setActivityReps(e.target.value)}
-                            placeholder="e.g. 12" 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
+                      {/* Category: Productivity */}
+                      {category === 'productivity' && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
+                            <select 
+                              value={goalNameActivity}
+                              onChange={(e) => setGoalNameActivity(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            >
+                              <option value="">Select a goal...</option>
+                              {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
+                                <option key={index} value={goal}>{goal}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Type</label>
+                            <input 
+                              type="text" 
+                              value={type}
+                              onChange={(e) => setType(e.target.value)}
+                              placeholder="e.g. Coding, Writing" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          {renderOtherDropdown(
+                            'Place',
+                            place,
+                            setPlace,
+                            customPlace,
+                            setCustomPlace,
+                            ['Home', 'Work', 'Others'],
+                            place === 'Others'
+                          )}
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
+                            <input 
+                              type="time" 
+                              value={time}
+                              onChange={(e) => setTime(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
+                            <input 
+                              type="text" 
+                              value={duration}
+                              onChange={(e) => setDuration(e.target.value)}
+                              placeholder="e.g. 2 hours" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What did</label>
+                            <textarea 
+                              value={whatDid}
+                              onChange={(e) => setWhatDid(e.target.value)}
+                              rows="3" 
+                              placeholder="What did you accomplish?" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What result</label>
+                            <textarea 
+                              value={whatResult}
+                              onChange={(e) => setWhatResult(e.target.value)}
+                              rows="3" 
+                              placeholder="What was the outcome?" 
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                            />
+                          </div>
+                        </>
                       )}
 
-                      {isFieldVisible('activity-what') && (
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What I Did</label>
-                          <textarea 
-                            value={activityWhat}
-                            onChange={(e) => setActivityWhat(e.target.value)}
-                            rows="3" 
-                            placeholder="Explain the dynamic event details..." 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
-                      )}
-
-                      {isFieldVisible('activity-result') && (
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Result Text</label>
-                          <textarea 
-                            value={activityResult}
-                            onChange={(e) => setActivityResult(e.target.value)}
-                            rows="3" 
-                            placeholder="What was the outcome? How did you feel?..." 
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </div>
-                      )}
-
+                      {/* Base Fields - Note (Always at bottom) */}
                       <div className="md:col-span-2">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Note</label>
                         <textarea 
-                          value={activityNote}
-                          onChange={(e) => setActivityNote(e.target.value)}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
                           rows="3" 
                           placeholder="Any additional quick comments..." 
                           className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Additional Metadata (JSON Format)</label>
-                        <textarea 
-                          value={activityDetails}
-                          onChange={(e) => setActivityDetails(e.target.value)}
-                          rows="3" 
-                          placeholder='e.g. { "heart_rate": 135, "weather": "sunny" }' 
-                          className="font-mono text-xs w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                         />
                       </div>
                     </div>
