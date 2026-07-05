@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSquarePollVertical, faUser, faRightFromBracket, faFileCirclePlus, 
-  faBullseye, faCalendarCheck, faPersonRunning, faPaperPlane, faCircleInfo,
+  faBullseye, faCalendarCheck, faPersonRunning, faPaperPlane, faPenToSquare, faCircleInfo,
   faTrashCan, faClockRotateLeft, faLayerGroup, faCircleCheck, faTriangleExclamation,
   faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi
 } from '@fortawesome/free-solid-svg-icons';
@@ -42,6 +42,11 @@ const Dashboard = () => {
   const [dates, setDates] = useState([]);
   const [datesLoaded, setDatesLoaded] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+
+  // Edit mode states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [fetchStatus, setFetchStatus] = useState('');
 
   // Goals states
   const [activeGoals, setActiveGoals] = useState([]);
@@ -97,12 +102,83 @@ const Dashboard = () => {
     return apiUrl.trim() || 'http://127.0.0.1:8000';
   };
 
+  const checkExistingRecord = async () => {
+  if (entityType === 'daylog' && !daylogDate) return;
+  if (entityType === 'goal' && !goalName) return;
+
+  setFetchStatus('loading...');
+  const apiBase = getApiUrl();
+
+  try {
+    let endpoint = '';
+    
+    // NOTE: Ensure your backend has these exact GET endpoints configured
+    if (entityType === 'daylog') {
+      endpoint = `${apiBase}/daylogs/by_date/${daylogDate}`;
+    } else if (entityType === 'goal') {
+      endpoint = `${apiBase}/goals/by_name/${goalName.trim()}`; 
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (response.ok) {
+      const resData = await response.json();
+      // Adjust based on your API response structure (e.g., resData.data vs resData)
+      const data = resData.data || resData; 
+
+      if (data && data.id) {
+        // Record Exists! Switch to Edit Mode and auto-fill
+        setIsEditMode(true);
+        setEditId(data.id);
+        setFetchStatus('Record found! Editing existing.');
+        
+        if (entityType === 'daylog') {
+          setDaylogBed(data.bed_time || '');
+          setDaylogWake(data.wake_time || '');
+          setDaylogSleep(data.sleep_time || '');
+          setDaylogDuration(data.sleep_duration_hours || '');
+          setDaylogProd(data.total_productivity_min || '');
+          setDaylogCalories(data.total_calories || '');
+          setDaylogNotes(data.notes || '');
+        } else if (entityType === 'goal') {
+          setGoalDesc(data.description || '');
+          setGoalStatus(data.active_status ?? true);
+        }
+        
+        logToConsole(`Loaded existing ${entityType} for editing.`, data, 'info');
+      } else {
+        // Safe to create new
+        resetToCreateMode();
+        setFetchStatus('No existing record. Ready to create new.');
+      }
+    } else if (response.status === 404) {
+      // 404 means not found, which is completely fine for a new entry
+      resetToCreateMode();
+      setFetchStatus('No existing record. Ready to create new.');
+    } else {
+      setFetchStatus('Error checking record.');
+    }
+  } catch (err) {
+    console.error(err);
+    setFetchStatus('Network error.');
+  }
+};
+
+// Helper function to clear edit state if they search for something new
+const resetToCreateMode = () => {
+  setIsEditMode(false);
+  setEditId(null);
+};
+
   const fetchGoals = async () => {
   if (goalsLoaded) return; // ADD THIS: Prevent refetching if already loaded
 
   const apiBase = getApiUrl();
   try {
-    const response = await fetch(`${apiBase}/goals/get_goals`, {
+    const response = await fetch(`${apiBase}/goals/get_goal_titles`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -288,19 +364,26 @@ const Dashboard = () => {
   const handleFormSubmission = async (e) => {
     e.preventDefault();
     const apiBase = getApiUrl();
+    // Decide method based on state
+    const httpMethod = isEditMode ? 'PUT' : 'POST';
     let endpoint = '';
     let payload = {};
 
     try {
       if (entityType === 'goal') {
-        endpoint = `${apiBase}/goals/add_goal`;
+        // If editing, append the ID to the endpoint
+        endpoint = isEditMode 
+        ? `${apiBase}/goals/update_goal/by_id/${editId}` 
+        : `${apiBase}/goals/add_goal`;
         payload = {
-          name: goalName.trim(),
+          title: goalName.trim(),
           description: goalDesc.trim() || null,
           active_status: goalStatus
         };
       } else if (entityType === 'daylog') {
-        endpoint = `${apiBase}/daylogs/add_daylog`;
+        endpoint = isEditMode 
+        ? `${apiBase}/daylogs/update_daylog/by_id/${editId}` 
+        : `${apiBase}/daylogs/add_daylog`;
         const durationVal = daylogDuration;
         const prodVal = daylogProd;
         const calVal = daylogCalories;
@@ -377,7 +460,7 @@ const Dashboard = () => {
       logToConsole(`Submitting ${entityType.toUpperCase()} data to: ${endpoint}...`, payload, 'info');
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: httpMethod,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -388,8 +471,11 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (response.ok) {
-        logToConsole(`Successfully created ${entityType.toUpperCase()} entry!`, data, 'success');
+        logToConsole(`Successfully ${isEditMode ? 'updated' : 'created'} ${entityType.toUpperCase()} entry!`, data, 'success');
         resetFormFields();
+        setIsEditMode(false); // Reset completely after success
+        setEditId(null);
+        setFetchStatus('');
         if (selectedDate) {
           fetchActivitiesByDate(selectedDate);
         }
@@ -406,7 +492,7 @@ const Dashboard = () => {
     
     const apiBase = getApiUrl();
     try {
-      const response = await fetch(`${apiBase}/daylogs/active-dates`, {
+      const response = await fetch(`${apiBase}/daylogs/get_daylog_dates`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -684,16 +770,34 @@ const Dashboard = () => {
                 <form onSubmit={handleFormSubmission} className="space-y-6">
                   {entityType === 'goal' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="md:col-span-2">
+                      <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name *</label>
-                        <input 
-                          type="text" 
-                          value={goalName}
-                          onChange={(e) => setGoalName(e.target.value)}
-                          required 
-                          placeholder="e.g. Learn System Design" 
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100"
-                        />
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="text" 
+                            value={goalName}
+                            onChange={(e) => {
+                              setGoalName(e.target.value);
+                              setFetchStatus(''); // Clear message when they change the date
+                              setIsEditMode(false); // Reset mode until they click check
+                            }}
+                            required 
+                            className="flex-grow rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                          />
+                          <button 
+                            type="button"
+                            onClick={checkExistingRecord}
+                            className="bg-violet-100 hover:bg-violet-200 text-violet-700 font-bold px-4 py-3 rounded-xl text-sm transition-all shadow-sm whitespace-nowrap"
+                          >
+                            <FontAwesomeIcon icon={faClockRotateLeft} className="mr-2" />
+                            Check & Update
+                          </button>
+                        </div>
+                        {fetchStatus && (
+                          <p className={`text-[10px] font-bold mt-2 ${isEditMode ? 'text-violet-600' : 'text-slate-400'}`}>
+                            {fetchStatus}
+                          </p>
+                        )}
                       </div>
                       
                       <div className="md:col-span-2">
@@ -727,13 +831,32 @@ const Dashboard = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Log Date *</label>
-                        <input 
-                          type="date" 
-                          value={daylogDate}
-                          onChange={(e) => setDaylogDate(e.target.value)}
-                          required 
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
-                        />
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="date" 
+                            value={daylogDate}
+                            onChange={(e) => {
+                              setDaylogDate(e.target.value);
+                              setFetchStatus(''); // Clear message when they change the date
+                              setIsEditMode(false); // Reset mode until they click check
+                            }}
+                            required 
+                            className="flex-grow rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                          />
+                          <button 
+                            type="button"
+                            onClick={checkExistingRecord}
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold px-4 py-3 rounded-xl text-sm transition-all shadow-sm whitespace-nowrap"
+                          >
+                            <FontAwesomeIcon icon={faClockRotateLeft} className="mr-2" />
+                            Check & Update
+                          </button>
+                        </div>
+                        {fetchStatus && (
+                          <p className={`text-[10px] font-bold mt-2 ${isEditMode ? 'text-amber-600' : 'text-slate-400'}`}>
+                            {fetchStatus}
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -1217,7 +1340,8 @@ const Dashboard = () => {
                       type="submit" 
                       className={getSubmitButtonClass()}
                     >
-                      <FontAwesomeIcon icon={faPaperPlane} /> Submit to Backend
+                      <FontAwesomeIcon icon={isEditMode ? faPenToSquare : faPaperPlane} /> 
+                      {isEditMode ? 'Update Existing Backend Record' : 'Submit to Backend'}
                     </button>
                   </div>
                 </form>
