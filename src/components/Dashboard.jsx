@@ -203,25 +203,6 @@ const resetToCreateMode = () => {
     const date = new Date(2000, 0, 1, hours, minutes + minsToAdd);
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
-
-  const calculateDurationHours = (sleepStr, wakeStr) => {
-    if (!sleepStr || !wakeStr) return '';
-    const [sleepH, sleepM] = sleepStr.split(':').map(Number);
-    const [wakeH, wakeM] = wakeStr.split(':').map(Number);
-
-    let sleepDate = new Date(2000, 0, 1, sleepH, sleepM);
-    let wakeDate = new Date(2000, 0, 1, wakeH, wakeM);
-
-    // Handle the "Midnight Problem" (e.g. sleep at 23:00, wake at 07:00)
-    if (wakeDate < sleepDate) {
-      wakeDate = new Date(2000, 0, 2, wakeH, wakeM);
-    }
-
-    const diffMs = wakeDate - sleepDate;
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return diffHours.toFixed(2); // Returns a string like "7.50"
-  };
-
   // --- React Effects for Auto-Calculation ---
   
   // 1. Auto-calculate Sleep Time when Bed Time changes
@@ -232,15 +213,6 @@ const resetToCreateMode = () => {
       setDaylogSleep(''); // Clear if user erases bed time
     }
   }, [daylogBed]);
-
-  // 2. Auto-calculate Duration when Sleep or Wake Time changes
-  useEffect(() => {
-    if (daylogSleep && daylogWake) {
-      setDaylogDuration(calculateDurationHours(daylogSleep, daylogWake));
-    } else {
-      setDaylogDuration('');
-    }
-  }, [daylogSleep, daylogWake]);
 
   const formatTimeWithSeconds = (timeStr) => {
     if (!timeStr) return null;
