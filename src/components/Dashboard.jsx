@@ -9,6 +9,26 @@ import {
   faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi
 } from '@fortawesome/free-solid-svg-icons';
 
+const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
+  return (
+    <select 
+      value={value}
+      onChange={onChange}
+      onFocus={onFetch}
+      onClick={onFetch}
+      // Add whatever Tailwind CSS classes you are currently using here
+      className="w-full p-2 border rounded-md shadow-sm focus:ring focus:ring-opacity-50"
+    >
+      <option value="">Select a goal...</option>
+      {goals && goals.length > 0 && goals.map((goal, index) => (
+        <option key={index} value={goal}>
+          {goal}
+        </option>
+      ))}
+    </select>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { token, user, logout } = useAuth();
@@ -22,6 +42,10 @@ const Dashboard = () => {
   const [dates, setDates] = useState([]);
   const [datesLoaded, setDatesLoaded] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+
+  // Goals states
+  const [activeGoals, setActiveGoals] = useState([]);
+  const [goalsLoaded, setGoalsLoaded] = useState(false);
 
   // Form states
   const [goalName, setGoalName] = useState('');
@@ -44,7 +68,6 @@ const Dashboard = () => {
   const [daylogNotes, setDaylogNotes] = useState('');
 
   // Activity form states
-  const [activeGoals, setActiveGoals] = useState([]);
   const [entryDate, setEntryDate] = useState(() => {
     const d = new Date();
     const year = d.getFullYear();
@@ -75,29 +98,27 @@ const Dashboard = () => {
   };
 
   const fetchGoals = async () => {
-    const apiBase = getApiUrl();
-    try {
-      const response = await fetch(`${apiBase}/goals/get_goals`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+  if (goalsLoaded) return; // ADD THIS: Prevent refetching if already loaded
 
-      if (response.ok) {
-        const resData = await response.json();
-        const goalsList = resData.data || [];
-        setActiveGoals(goalsList);
-      } else {
-        console.error('Goals fetch failed with status:', response.status);
-      }
-    } catch (err) {
-      console.error('Error loading goals:', err);
+  const apiBase = getApiUrl();
+  try {
+    const response = await fetch(`${apiBase}/goals/get_goals`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (response.ok) {
+      const resData = await response.json();
+      const goalsList = resData.data || [];
+      setActiveGoals(goalsList);
+      setGoalsLoaded(true); // ADD THIS: Mark as loaded
+    } else {
+      console.error('Goals fetch failed with status:', response.status);
     }
-  };
-
-  // Fetch goals on component mount
-  useEffect(() => {
-    fetchGoals();
-  }, []);
+  } catch (err) {
+    console.error('Error loading goals:', err);
+  }
+};
 
   // --- Helper Functions for Time Math ---
   const addMinutesToTime = (timeStr, minsToAdd) => {
@@ -928,16 +949,12 @@ const Dashboard = () => {
                             <>
                               <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
-                                <select 
-                                  value={goalNameActivity}
-                                  onChange={(e) => setGoalNameActivity(e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                                >
-                                  <option value="">Select a goal...</option>
-                                  {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
-                                    <option key={index} value={goal}>{goal}</option>
-                                  ))}
-                                </select>
+                                <GoalDropdown 
+                                  value={goalNameActivity} 
+                                  onChange={(e) => setGoalNameActivity(e.target.value)} 
+                                  onFetch={fetchGoals} 
+                                  goals={activeGoals} 
+                                />
                               </div>
 
                               <div>
@@ -1007,16 +1024,12 @@ const Dashboard = () => {
                             <>
                               <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
-                                <select 
-                                  value={goalNameActivity}
-                                  onChange={(e) => setGoalNameActivity(e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                                >
-                                  <option value="">Select a goal...</option>
-                                  {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
-                                    <option key={index} value={goal}>{goal}</option>
-                                  ))}
-                                </select>
+                                <GoalDropdown 
+                                  value={goalNameActivity} 
+                                  onChange={(e) => setGoalNameActivity(e.target.value)} 
+                                  onFetch={fetchGoals} 
+                                  goals={activeGoals} 
+                                />
                               </div>
 
                               <div>
@@ -1038,16 +1051,12 @@ const Dashboard = () => {
                         <>
                           <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
-                            <select 
-                              value={goalNameActivity}
-                              onChange={(e) => setGoalNameActivity(e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                            >
-                              <option value="">Select a goal...</option>
-                              {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
-                                <option key={index} value={goal}>{goal}</option>
-                              ))}
-                            </select>
+                            <GoalDropdown 
+                              value={goalNameActivity} 
+                              onChange={(e) => setGoalNameActivity(e.target.value)} 
+                              onFetch={fetchGoals} 
+                              goals={activeGoals} 
+                            />
                           </div>
 
                           <div>
@@ -1111,16 +1120,12 @@ const Dashboard = () => {
                         <>
                           <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Goal Name</label>
-                            <select 
-                              value={goalNameActivity}
-                              onChange={(e) => setGoalNameActivity(e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                            >
-                              <option value="">Select a goal...</option>
-                              {activeGoals && activeGoals.length > 0 && activeGoals.map((goal, index) => (
-                                <option key={index} value={goal}>{goal}</option>
-                              ))}
-                            </select>
+                            <GoalDropdown 
+                              value={goalNameActivity} 
+                              onChange={(e) => setGoalNameActivity(e.target.value)} 
+                              onFetch={fetchGoals} 
+                              goals={activeGoals} 
+                            />
                           </div>
 
                           <div>
