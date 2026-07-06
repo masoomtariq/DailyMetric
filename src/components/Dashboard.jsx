@@ -8,6 +8,8 @@ import {
   faTrashCan, faClockRotateLeft, faLayerGroup, faCircleCheck, faTriangleExclamation,
   faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi
 } from '@fortawesome/free-solid-svg-icons';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { useMediaQuery } from '@mui/material';
 
 const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
   return (
@@ -26,6 +28,101 @@ const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
         </option>
       ))}
     </select>
+  );
+};
+
+const CustomTimePicker = ({ value, onChange, label, color = 'emerald' }) => {
+  const isDesktop = useMediaQuery('(min-width:768px)');
+  
+  const colorConfig = {
+    emerald: {
+      hover: '#10b981',
+      focus: '#10b981',
+      ring: 'rgba(16, 185, 129, 0.1)',
+      mobileFocus: 'focus:border-emerald-500 focus:ring-emerald-100'
+    },
+    amber: {
+      hover: '#f59e0b',
+      focus: '#f59e0b',
+      ring: 'rgba(245, 158, 11, 0.1)',
+      mobileFocus: 'focus:border-amber-500 focus:ring-amber-100'
+    }
+  };
+  
+  const config = colorConfig[color] || colorConfig.emerald;
+  
+  // Convert time string to Date object safely
+  const parseTimeToDate = (timeStr) => {
+    if (!timeStr) return null;
+    try {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes)) return null;
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    } catch (e) {
+      console.error('Error parsing time:', e);
+      return null;
+    }
+  };
+  
+  if (isDesktop) {
+    return (
+      <div>
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+        <TimePicker
+          value={parseTimeToDate(value)}
+          onChange={(newValue) => {
+            if (newValue) {
+              const hours = String(newValue.getHours()).padStart(2, '0');
+              const minutes = String(newValue.getMinutes()).padStart(2, '0');
+              onChange(`${hours}:${minutes}`);
+            } else {
+              onChange('');
+            }
+          }}
+          ampm={false}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              size: 'small',
+              sx: {
+                '& .MuiInputBase-root': {
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(248, 250, 252, 0.3)',
+                  border: '1px solid #e2e8f0',
+                  '&:hover': {
+                    borderColor: config.hover,
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: '#ffffff',
+                    borderColor: config.focus,
+                    boxShadow: `0 0 0 4px ${config.ring}`,
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: '0.875rem',
+                  padding: '12px 16px',
+                },
+              },
+            },
+          }}
+        />
+      </div>
+    );
+  }
+  
+  // Mobile fallback - native time input
+  return (
+    <div>
+      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+      <input 
+        type="time" 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all ${config.mobileFocus} focus:bg-white focus:ring-4`}
+      />
+    </div>
   );
 };
 
@@ -831,33 +928,26 @@ const resetToCreateMode = () => {
                         )}
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Bed Time (Sleep Start)</label>
-                        <input 
-                          type="time" 
-                          value={daylogBed}
-                          onChange={(e) => setDaylogBed(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
-                        />
-                      </div>
+                      <CustomTimePicker 
+                        value={daylogBed}
+                        onChange={setDaylogBed}
+                        label="Bed Time (Sleep Start)"
+                        color="amber"
+                      />
+
+                      <CustomTimePicker 
+                        value={daylogWake}
+                        onChange={setDaylogWake}
+                        label="Wake Time (Sleep End)"
+                        color="amber"
+                      />
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Wake Time (Sleep End)</label>
-                        <input 
-                          type="time" 
-                          value={daylogWake}
-                          onChange={(e) => setDaylogWake(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Manual Sleep Time (Optional)</label>
-                        <input 
-                          type="time" 
+                        <CustomTimePicker 
                           value={daylogSleep}
-                          onChange={(e) => setDaylogSleep(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                          onChange={setDaylogSleep}
+                          label="Manual Sleep Time (Optional)"
+                          color="amber"
                         />
                         <p className="text-[10px] text-slate-400 mt-1">Calculates as 15m after bed time if omitted.</p>
                       </div>
@@ -1052,15 +1142,11 @@ const resetToCreateMode = () => {
                                 />
                               </div>
 
-                              <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
-                                <input 
-                                  type="time" 
-                                  value={time}
-                                  onChange={(e) => setTime(e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                                />
-                              </div>
+                              <CustomTimePicker 
+                                value={time}
+                                onChange={setTime}
+                                label="Time"
+                              />
 
                               <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quantity</label>
@@ -1127,15 +1213,11 @@ const resetToCreateMode = () => {
                                 />
                               </div>
 
-                              <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
-                                <input 
-                                  type="time" 
-                                  value={time}
-                                  onChange={(e) => setTime(e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                                />
-                              </div>
+                              <CustomTimePicker 
+                                value={time}
+                                onChange={setTime}
+                                label="Time"
+                              />
                             </>
                           )}
                         </>
@@ -1165,15 +1247,11 @@ const resetToCreateMode = () => {
                             />
                           </div>
 
-                          <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
-                            <input 
-                              type="time" 
-                              value={time}
-                              onChange={(e) => setTime(e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                            />
-                          </div>
+                          <CustomTimePicker 
+                            value={time}
+                            onChange={setTime}
+                            label="Time"
+                          />
 
                           <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
@@ -1244,15 +1322,11 @@ const resetToCreateMode = () => {
                             place === 'Others'
                           )}
 
-                          <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time</label>
-                            <input 
-                              type="time" 
-                              value={time}
-                              onChange={(e) => setTime(e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                            />
-                          </div>
+                          <CustomTimePicker 
+                            value={time}
+                            onChange={setTime}
+                            label="Time"
+                          />
 
                           <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Duration</label>
