@@ -223,7 +223,33 @@ const resetToCreateMode = () => {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
   // --- React Effects for Auto-Calculation ---
+
+  useEffect(() => {
+  // Define an async function inside the effect
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/transactions/total_balance`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        setTotalBalance(resData.total_balance || 0);
+      } else {
+        console.error('Failed to fetch total balance with status:', response.status);
+      }
+    } catch (err) {
+      console.error('Error loading total balance:', err);
+    }
+  };
+
+  // Call the function immediately
+  fetchBalance();
   
+  // Empty dependency array ensures this runs ONLY once on mount/reload
+}, []); 
+
   // 1. Auto-calculate Sleep Time when Bed Time changes
   useEffect(() => {
     if (daylogBed) {
@@ -508,20 +534,17 @@ const resetToCreateMode = () => {
         body: JSON.stringify(payload)
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        // If response is not JSON, get the text instead
+        const text = await response.text();
+        data = { error: 'Non-JSON response', responseText: text };
+      }
 
       if (response.ok) {
         logToConsole(`Successfully ${isEditMode ? 'updated' : 'created'} ${entityType.toUpperCase()} entry!`, data, 'success');
-        
-        // Optimistic balance update for transactions
-        if (entityType === 'transaction' && !isEditMode) {
-          const amount = parseFloat(transactionAmount);
-          if (transactionCategory === 'Income') {
-            setTotalBalance(prev => prev + amount);
-          } else if (transactionCategory === 'Expense') {
-            setTotalBalance(prev => prev - amount);
-          }
-        }
         
         resetFormFields();
         setIsEditMode(false); // Reset completely after success
@@ -534,7 +557,7 @@ const resetToCreateMode = () => {
         logToConsole(`Server rejected submission with status: ${response.status}`, data, 'error');
       }
     } catch (err) {
-      logToConsole("Network transmission error occurred during form submission.", err.toString(), 'error');
+      logToConsole("Network transmission error occurred during form submission.", err.message || err.toString(), 'error');
     }
   };
 
