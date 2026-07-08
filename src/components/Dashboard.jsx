@@ -6,7 +6,7 @@ import {
   faSquarePollVertical, faUser, faRightFromBracket, faFileCirclePlus, 
   faBullseye, faCalendarCheck, faPersonRunning, faPaperPlane, faPenToSquare, faCircleInfo,
   faTrashCan, faClockRotateLeft, faLayerGroup, faCircleCheck, faTriangleExclamation,
-  faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi
+  faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi, faWallet
 } from '@fortawesome/free-solid-svg-icons';
 
 const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
@@ -42,6 +42,7 @@ const Dashboard = () => {
   const [dates, setDates] = useState([]);
   const [datesLoaded, setDatesLoaded] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+  const [totalBalance, setTotalBalance] = useState(0.00);
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -97,6 +98,24 @@ const Dashboard = () => {
   const [reps, setReps] = useState('');
   const [whatDid, setWhatDid] = useState('');
   const [whatResult, setWhatResult] = useState('');
+
+  // Transaction form states
+  const [transactionDate, setTransactionDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+  const [transactionCategory, setTransactionCategory] = useState('Expense');
+  const [transactionAmount, setTransactionAmount] = useState('');
+  const [transactionNote, setTransactionNote] = useState('');
+  const [transactionSource, setTransactionSource] = useState('');
+  const [expenseType, setExpenseType] = useState('Petrol');
+  const [customExpenseType, setCustomExpenseType] = useState('');
+  const [petrolLitres, setPetrolLitres] = useState('');
+  const [petrolDayMode, setPetrolDayMode] = useState('Morning');
+  const [lunchWhatEat, setLunchWhatEat] = useState('');
 
   const getApiUrl = () => {
     return apiUrl.trim() || 'http://127.0.0.1:8000';
@@ -241,6 +260,8 @@ const resetToCreateMode = () => {
       return "bg-violet-600 hover:bg-violet-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
     } else if (entityType === 'daylog') {
       return "bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
+    } else if (entityType === 'transaction') {
+      return "bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
     } else {
       return "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all duration-150 transform active:scale-95 flex items-center gap-2";
     }
@@ -330,14 +351,31 @@ const resetToCreateMode = () => {
       setReps('');
       setWhatDid('');
       setWhatResult('');
+    } else if (entityType === 'transaction') {
+      setTransactionDate(() => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      });
+      setTransactionCategory('Expense');
+      setTransactionAmount('');
+      setTransactionNote('');
+      setTransactionSource('');
+      setExpenseType('Petrol');
+      setCustomExpenseType('');
+      setPetrolLitres('');
+      setPetrolDayMode('Morning');
+      setLunchWhatEat('');
     }
   };
 
   const handleFormSubmission = async (e) => {
     e.preventDefault();
     const apiBase = getApiUrl();
-    // Decide method based on state
-    const httpMethod = isEditMode ? 'PUT' : 'POST';
+    // Decide method based on state (transactions don't support edit mode)
+    const httpMethod = (entityType === 'transaction') ? 'POST' : (isEditMode ? 'PUT' : 'POST');
     let endpoint = '';
     let payload = {};
 
@@ -427,6 +465,36 @@ const resetToCreateMode = () => {
         if (category !== 'prayer' && goalNameActivity) {
           payload.goal_name = goalNameActivity;
         }
+      } else if (entityType === 'transaction') {
+        endpoint = `${apiBase}/transactions/transaction`;
+        
+        // Build the details object based on category and conditions
+        const details = {};
+        
+        if (transactionCategory === 'Income') {
+          details.source = transactionSource.trim() || null;
+        } else if (transactionCategory === 'Expense') {
+          // Resolve the final expense type
+          const resolvedExpenseType = expenseType === 'Others' ? customExpenseType : expenseType;
+          details.expense_type = resolvedExpenseType;
+          
+          // Add type-specific details
+          if (resolvedExpenseType.toLowerCase() === 'petrol') {
+            details.litres = petrolLitres !== '' ? parseFloat(petrolLitres) : null;
+            details.day_mode = petrolDayMode;
+          } else if (resolvedExpenseType.toLowerCase() === 'lunch') {
+            details.what_ate = lunchWhatEat.trim() || null;
+          }
+        }
+        
+        // Build the root payload
+        payload = {
+          date: transactionDate,
+          category: transactionCategory.toLowerCase(),
+          amount: parseFloat(transactionAmount),
+          note: transactionNote.trim() || null,
+          details: details
+        };
       }
 
       logToConsole(`Submitting ${entityType.toUpperCase()} data to: ${endpoint}...`, payload, 'info');
@@ -444,6 +512,17 @@ const resetToCreateMode = () => {
 
       if (response.ok) {
         logToConsole(`Successfully ${isEditMode ? 'updated' : 'created'} ${entityType.toUpperCase()} entry!`, data, 'success');
+        
+        // Optimistic balance update for transactions
+        if (entityType === 'transaction' && !isEditMode) {
+          const amount = parseFloat(transactionAmount);
+          if (transactionCategory === 'Income') {
+            setTotalBalance(prev => prev + amount);
+          } else if (transactionCategory === 'Expense') {
+            setTotalBalance(prev => prev - amount);
+          }
+        }
+        
         resetFormFields();
         setIsEditMode(false); // Reset completely after success
         setEditId(null);
@@ -649,6 +728,12 @@ const resetToCreateMode = () => {
                 />
               </div>
               
+              <div className="bg-cyan-900/50 px-3 py-1.5 rounded-lg text-xs border border-cyan-700 flex items-center gap-2">
+                <FontAwesomeIcon icon={faWallet} className="text-cyan-300" />
+                <span className="font-semibold text-cyan-100">Total Balance:</span>
+                <span className="font-bold text-cyan-300">${totalBalance.toFixed(2)}</span>
+              </div>
+              
               <div className="bg-primary-900/50 px-3 py-1.5 rounded-lg text-xs border border-primary-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faUser} className="text-primary-300" />
                 <span className="font-semibold text-primary-100">{user || 'User'}</span>
@@ -677,7 +762,7 @@ const resetToCreateMode = () => {
               <div className="p-8 space-y-8">
                 <div>
                   <span className="block text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-3">Choose Log Category</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     
                     <label className="relative flex items-center gap-4 px-5 py-4 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-primary-400 hover:bg-primary-50/10 transition-all select-none group">
                       <input 
@@ -734,6 +819,25 @@ const resetToCreateMode = () => {
                         <div className="text-[11px] text-slate-500">Tracked dynamic event</div>
                       </div>
                       <div className="absolute top-3 right-3 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center bg-white peer-checked:border-emerald-600 peer-checked:bg-emerald-600 after:content-[''] after:w-1.5 after:h-1.5 after:bg-white after:rounded-full"></div>
+                    </label>
+
+                    <label className="relative flex items-center gap-4 px-5 py-4 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-primary-400 hover:bg-primary-50/10 transition-all select-none group">
+                      <input 
+                        type="radio" 
+                        name="entity-type" 
+                        value="transaction" 
+                        checked={entityType === 'transaction'}
+                        onChange={() => setEntityType('transaction')}
+                        className="hidden peer"
+                      />
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-all peer-checked:bg-cyan-600 peer-checked:text-white">
+                        <FontAwesomeIcon icon={faWallet} className="text-base" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="text-sm font-bold text-slate-800">Transaction</div>
+                        <div className="text-[11px] text-slate-500">Income & Expenses</div>
+                      </div>
+                      <div className="absolute top-3 right-3 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center bg-white peer-checked:border-cyan-600 peer-checked:bg-cyan-600 after:content-[''] after:w-1.5 after:h-1.5 after:bg-white after:rounded-full"></div>
                     </label>
                     
                   </div>
@@ -1303,6 +1407,149 @@ const resetToCreateMode = () => {
                     </div>
                   )}
 
+                  {entityType === 'transaction' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Common Fields - Always Visible */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Transaction Date *</label>
+                        <input 
+                          type="date" 
+                          value={transactionDate}
+                          onChange={(e) => setTransactionDate(e.target.value)}
+                          required 
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category *</label>
+                        <select 
+                          value={transactionCategory}
+                          onChange={(e) => setTransactionCategory(e.target.value)}
+                          required 
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                        >
+                          <option value="Expense">Expense</option>
+                          <option value="Income">Income</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Amount *</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          value={transactionAmount}
+                          onChange={(e) => setTransactionAmount(e.target.value)}
+                          placeholder="e.g. 50.00" 
+                          required
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                        />
+                      </div>
+
+                      {/* Income Context */}
+                      {transactionCategory === 'Income' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Source</label>
+                          <input 
+                            type="text" 
+                            value={transactionSource}
+                            onChange={(e) => setTransactionSource(e.target.value)}
+                            placeholder="e.g. Salary, Freelance" 
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </div>
+                      )}
+
+                      {/* Expense Context */}
+                      {transactionCategory === 'Expense' && (
+                        <>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Expense Type</label>
+                            <select 
+                              value={expenseType}
+                              onChange={(e) => setExpenseType(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                            >
+                              <option value="Petrol">Petrol</option>
+                              <option value="Lunch">Lunch</option>
+                              <option value="Others">Others</option>
+                            </select>
+                          </div>
+
+                          {expenseType === 'Others' && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Custom Expense Type</label>
+                              <input 
+                                type="text" 
+                                value={customExpenseType}
+                                onChange={(e) => setCustomExpenseType(e.target.value)}
+                                placeholder="Please specify..." 
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                              />
+                            </div>
+                          )}
+
+                          {/* Petrol Specifics */}
+                          {(expenseType === 'Petrol' || (expenseType === 'Others' && customExpenseType.toLowerCase() === 'petrol')) && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Litres</label>
+                                <input 
+                                  type="number" 
+                                  step="0.01"
+                                  value={petrolLitres}
+                                  onChange={(e) => setPetrolLitres(e.target.value)}
+                                  placeholder="e.g. 25.5" 
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Day Mode</label>
+                                <select 
+                                  value={petrolDayMode}
+                                  onChange={(e) => setPetrolDayMode(e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                                >
+                                  <option value="Morning">Morning</option>
+                                  <option value="Noon">Noon</option>
+                                  <option value="Evening">Evening</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Lunch Specifics */}
+                          {(expenseType === 'Lunch' || (expenseType === 'Others' && customExpenseType.toLowerCase() === 'lunch')) && (
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What did you eat?</label>
+                              <input 
+                                type="text" 
+                                value={lunchWhatEat}
+                                onChange={(e) => setLunchWhatEat(e.target.value)}
+                                placeholder="e.g. Chicken sandwich, Salad" 
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Note Field - Always Visible */}
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Note</label>
+                        <textarea 
+                          value={transactionNote}
+                          onChange={(e) => setTransactionNote(e.target.value)}
+                          rows="3" 
+                          placeholder="Any additional notes or description..." 
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-sm outline-none transition-all focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
                     <div className="text-xs text-slate-500 flex items-center gap-1.5">
                       <FontAwesomeIcon icon={faCircleInfo} className="text-primary-500" />
@@ -1312,8 +1559,8 @@ const resetToCreateMode = () => {
                       type="submit" 
                       className={getSubmitButtonClass()}
                     >
-                      <FontAwesomeIcon icon={isEditMode ? faPenToSquare : faPaperPlane} /> 
-                      {isEditMode ? 'Update Existing Backend Record' : 'Submit to Backend'}
+                      <FontAwesomeIcon icon={isEditMode && entityType !== 'transaction' ? faPenToSquare : faPaperPlane} /> 
+                      {isEditMode && entityType !== 'transaction' ? 'Update Existing Backend Record' : 'Submit to Backend'}
                     </button>
                   </div>
                 </form>
