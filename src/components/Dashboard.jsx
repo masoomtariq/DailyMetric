@@ -411,7 +411,16 @@ const resetToCreateMode = () => {
         endpoint = isEditMode 
         ? `${apiBase}/goals/update_goal/by_id/${editId}` 
         : `${apiBase}/goals/add_goal`;
+        const goalDate = (() => {
+          const d = new Date();
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        })();
+
         payload = {
+          date: goalDate,
           title: goalName.trim(),
           description: goalDesc.trim() || null,
           active_status: goalStatus
@@ -425,7 +434,7 @@ const resetToCreateMode = () => {
         const calVal = daylogCalories;
 
         payload = {
-          log_date: daylogDate,
+          date: daylogDate,
           bed_time: formatTimeWithSeconds(daylogBed || null),
           wake_time: formatTimeWithSeconds(daylogWake || null),
           sleep_time: formatTimeWithSeconds(daylogSleep || null),
@@ -480,7 +489,7 @@ const resetToCreateMode = () => {
 
         // Build the root payload
         payload = {
-          entry_date: entryDate,
+          date: entryDate,
           category: category,
           activity_type_name: resolvedType,
           note: note.trim() || null,
