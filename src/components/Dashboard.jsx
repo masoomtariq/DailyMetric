@@ -228,7 +228,7 @@ const resetToCreateMode = () => {
   // Define an async function inside the effect
   const fetchBalance = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/transactions/total_balance`, {
+      const response = await fetch(`${getApiUrl()}/finance/total_balance`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -501,7 +501,7 @@ const resetToCreateMode = () => {
           payload.goal_name = goalNameActivity;
         }
       } else if (entityType === 'transaction') {
-        endpoint = `${apiBase}/transactions/transaction`;
+        endpoint = `${apiBase}/finance/transaction`;
         
         // Build the details object based on category and conditions
         const details = {};
