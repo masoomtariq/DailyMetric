@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
         
         const claims = JSON.parse(jsonPayload);
         setUser(claims.sub || 'User');
-      } catch (e) {
+      } catch (_e) {
         logout();
       }
     }

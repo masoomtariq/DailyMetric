@@ -5,3 +5,53 @@
 .transition-all {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Mobile-optimized table styles */
+@media (max-width: 640px) {
+  .mobile-stack-table {
+    display: block;
+  }
+  
+  .mobile-stack-table thead {
+    display: none;
+  }
+  
+  .mobile-stack-table tbody,
+  .mobile-stack-table tr,
+  .mobile-stack-table td {
+    display: block;
+    width: 100%;
+  }
+  
+  .mobile-stack-table tr {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .mobile-stack-table td {
+    padding: 0.5rem 0;
+    text-align: left;
+  }
+  
+  .mobile-stack-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #475569;
+    margin-right: 0.5rem;
+  }
+}

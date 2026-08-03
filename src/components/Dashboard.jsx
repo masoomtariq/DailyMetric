@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSquarePollVertical, faUser, faRightFromBracket, faFileCirclePlus, 
   faBullseye, faCalendarCheck, faPersonRunning, faPaperPlane, faPenToSquare, faCircleInfo,
   faTrashCan, faClockRotateLeft, faLayerGroup, faCircleCheck, faTriangleExclamation,
-  faCircleInfo as faCircleInfo2, faInbox, faFolderOpen, faCircleNotch, faWifi, faWallet
+  faCircleInfo as faCircleInfo2, faInbox, faCircleNotch, faWallet
 } from '@fortawesome/free-solid-svg-icons';
 
 const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
@@ -30,9 +29,8 @@ const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
 };
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { token, user, logout } = useAuth();
-  const [apiUrl, setApiUrl] = useState('https://masoomtariq-habit-tracker.hf.space');
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space');
   const [entityType, setEntityType] = useState('goal');
   const [consoleOutput, setConsoleOutput] = useState('Waiting for submissions...');
   const [consoleStatus, setConsoleStatus] = useState('info');
@@ -763,7 +761,7 @@ const resetToCreateMode = () => {
               <div className="bg-cyan-900/50 px-3 py-1.5 rounded-lg text-xs border border-cyan-700 flex items-center gap-2">
                 <FontAwesomeIcon icon={faWallet} className="text-cyan-300" />
                 <span className="font-semibold text-cyan-100">Total Balance:</span>
-                <span className="font-bold text-cyan-300">${totalBalance.toFixed(2)}</span>
+                <span className="font-bold text-cyan-300">₨ {totalBalance.toFixed(2)}</span>
               </div>
               
               <div className="bg-primary-900/50 px-3 py-1.5 rounded-lg text-xs border border-primary-700 flex items-center gap-2">

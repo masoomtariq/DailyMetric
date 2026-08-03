@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Tracker from './pages/Tracker';
+import Finance from './pages/Finance';
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuth();
@@ -29,11 +32,15 @@ function App() {
               <Login />
             </PublicRoute>
           } />
-          <Route path="/dashboard" element={
+          <Route path="/" element={
             <ProtectedRoute>
-              <Dashboard />
+              <Layout />
             </ProtectedRoute>
-          } />
+          }>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="tracker" element={<Tracker />} />
+            <Route path="finance" element={<Finance />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

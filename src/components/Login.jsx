@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSquarePollVertical, faShieldHalved, faPhone, faLock, faRightToBracket, faUserPlus, faFloppyDisk, faCircleCheck, faTriangleExclamation, faCircleInfo as faCircleInfo2 } from '@fortawesome/free-solid-svg-icons';
+import { faSquarePollVertical, faShieldHalved, faPhone, faLock, faRightToBracket, faUserPlus, faFloppyDisk } from '@fortawesome/free-solid-svg-icons';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
-  const [apiUrl, setApiUrl] = useState('https://masoomtariq-habit-tracker.hf.space');
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space');
   
   // Login form state
   const [loginPhone, setLoginPhone] = useState('');
