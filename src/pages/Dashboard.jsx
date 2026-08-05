@@ -7,6 +7,11 @@ import TransactionFormEngine from '../components/TransactionFormEngine';
 
 const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
+  // Calculate yesterday's date
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayDate = yesterday.toISOString().split('T')[0];
+  
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardData(today);
   const { data: balanceData, isLoading: balanceLoading } = useTotalBalance();
   const createActivity = useCreateActivity();
@@ -61,18 +66,16 @@ const Dashboard = () => {
   };
 
   const handleYesterdayBedTimeUpdate = () => {
-    if (dashboardData?.daylog?.date) {
-      // Use date instead of daylog_id for yesterday_bed_time update
-      updateDaylog.mutate({
-        id: dashboardData.daylog.date,
-        data: { yesterday_bed_time: daylogForm.yesterday_bed_time },
-        useDate: true,
-      }, {
-        onSuccess: () => {
-          setEditingYesterdayBedTime(false);
-        },
-      });
-    }
+    // Use yesterday's date for yesterday_bed_time update
+    updateDaylog.mutate({
+      id: yesterdayDate,
+      data: { yesterday_bed_time: daylogForm.yesterday_bed_time },
+      useDate: true,
+    }, {
+      onSuccess: () => {
+        setEditingYesterdayBedTime(false);
+      },
+    });
   };
 
   const handleTodayBedTimeUpdate = () => {
