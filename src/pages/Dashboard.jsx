@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useDashboardData, useTotalBalance, useCreateActivity, useUpdateDaylog, useCreateTransaction } from '../hooks/useApi';
+import { useDashboardData, useTotalBalance, useCreateActivity, useUpdateDaylog, useCreateTransaction, useDaylogByDate } from '../hooks/useApi';
 import { useToast } from '../context/ToastContext';
 import { ClockIcon, ChartBarIcon, PencilIcon } from '@heroicons/react/24/outline';
 import ActivityFormEngine from '../components/ActivityFormEngine';
@@ -13,11 +13,45 @@ const Dashboard = () => {
   const yesterdayDate = yesterday.toISOString().split('T')[0];
   
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardData(today);
+  const { data: yesterdayDaylog } = useDaylogByDate(yesterdayDate);
   const { data: balanceData, isLoading: balanceLoading } = useTotalBalance();
   const createActivity = useCreateActivity();
   const createTransaction = useCreateTransaction();
   const updateDaylog = useUpdateDaylog();
   const { error: toastError } = useToast();
+
+  // Function to format time in AM/PM format using Intl.DateTimeFormat
+  const formatTimeToAMPM = (timeString) => {
+    if (!timeString) return 'Not set';
+    
+    try {
+      // Parse the time string (HH:MM or HH:MM:SS format)
+      const [hours, minutes] = timeString.split(':').map(Number);
+      
+      // Create a date object with the time
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      
+      // Format using Intl.DateTimeFormat for AM/PM
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return timeString; // Return original if formatting fails
+    }
+  };
+
+  // Function to ensure time is in HH:MM format for input elements
+  const normalizeTimeInput = (timeString) => {
+    if (!timeString) return '';
+    // Remove seconds if present
+    return timeString.split(':').slice(0, 2).join(':');
+  };
 
   // Quick entry tab state
   const [quickEntryTab, setQuickEntryTab] = useState('activity');
@@ -41,44 +75,36 @@ const Dashboard = () => {
 
   // Initialize daylog form when data loads
   useEffect(() => {
-    if (dashboardData?.daylog) {
-      console.log('Dashboard data:', dashboardData.daylog);
+    // According to the OpenAPI schema, fields are at root level, not nested under daylog
+    if (dashboardData) {
       setDaylogForm({
-        yesterday_bed_time: dashboardData.daylog.yesterday_bed_time || '',
-        today_bed_time: dashboardData.daylog.bed_time || '',
-        wake_time: dashboardData.daylog.wake_time || '',
+        yesterday_bed_time: yesterdayDaylog?.bed_time || dashboardData.yesterday_bed_time || '',
+        today_bed_time: dashboardData.bed_time || '',
+        wake_time: dashboardData.wake_time || '',
       });
     }
-  }, [dashboardData]);
+  }, [dashboardData, yesterdayDaylog]);
 
   const handleWakeTimeUpdate = () => {
-    console.log('handleWakeTimeUpdate called', { dashboardData, daylogForm });
-    if (dashboardData?.daylog?.id) {
-      // Use daylog_id for wake_time update
-      // API requires date in body
-      updateDaylog.mutate({
-        id: dashboardData.daylog.id,
-        data: { 
-          date: today,
-          wake_time: daylogForm.wake_time 
-        },
-        useDate: false,
-      }, {
-        onSuccess: () => {
-          console.log('Wake time update successful');
-          setEditingWakeTime(false);
-        },
-        onError: (error) => {
-          console.error('Wake time update failed:', error);
-        },
-      });
-    } else {
-      console.error('Cannot update wake time: missing daylog id');
-    }
+    // Use date-based update since daylog id might not be available
+    updateDaylog.mutate({
+      id: today,
+      data: { 
+        date: today,
+        wake_time: daylogForm.wake_time 
+      },
+      useDate: true,
+    }, {
+      onSuccess: () => {
+        setEditingWakeTime(false);
+      },
+      onError: (error) => {
+        console.error('Wake time update failed:', error);
+      },
+    });
   };
 
   const handleYesterdayBedTimeUpdate = () => {
-    console.log('handleYesterdayBedTimeUpdate called', { yesterdayDate, daylogForm });
     // Use yesterday's date for yesterday_bed_time update
     // API requires date in body and uses bed_time field (not yesterday_bed_time)
     updateDaylog.mutate({
@@ -90,7 +116,6 @@ const Dashboard = () => {
       useDate: true,
     }, {
       onSuccess: () => {
-        console.log('Yesterday bed time update successful');
         setEditingYesterdayBedTime(false);
       },
       onError: (error) => {
@@ -100,29 +125,22 @@ const Dashboard = () => {
   };
 
   const handleTodayBedTimeUpdate = () => {
-    console.log('handleTodayBedTimeUpdate called', { dashboardData, daylogForm });
-    if (dashboardData?.daylog?.id) {
-      // Use daylog_id for today's bed_time update
-      // API requires date in body
-      updateDaylog.mutate({
-        id: dashboardData.daylog.id,
-        data: { 
-          date: today,
-          bed_time: daylogForm.today_bed_time 
-        },
-        useDate: false,
-      }, {
-        onSuccess: () => {
-          console.log('Today bed time update successful');
-          setEditingTodayBedTime(false);
-        },
-        onError: (error) => {
-          console.error('Today bed time update failed:', error);
-        },
-      });
-    } else {
-      console.error('Cannot update today bed time: missing daylog id');
-    }
+    // Use date-based update since daylog id might not be available
+    updateDaylog.mutate({
+      id: today,
+      data: { 
+        date: today,
+        bed_time: daylogForm.today_bed_time 
+      },
+      useDate: true,
+    }, {
+      onSuccess: () => {
+        setEditingTodayBedTime(false);
+      },
+      onError: (error) => {
+        console.error('Today bed time update failed:', error);
+      },
+    });
   };
 
   // Show loading state only during initial load
@@ -139,6 +157,9 @@ const Dashboard = () => {
   const totalExpense = dashboardData?.total_expense || 0;
   const totalIncome = dashboardData?.total_income || 0;
   const balance = balanceData?.total_balance || 0;
+  
+  // According to OpenAPI schema, fields are at root level, not nested under daylog
+  const daylogData = dashboardData || {};
 
   return (
     <div className="space-y-6">
@@ -146,9 +167,9 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Today's Dashboard</h1>
-          <p className="text-slate-600">{dashboardData?.day || new Date().toLocaleDateString('en-US', { weekday: 'long' })}</p>
+          <p className="text-slate-600">{daylogData?.day || new Date().toLocaleDateString('en-US', { weekday: 'long' })}</p>
         </div>
-        <div className="text-sm text-slate-500">{dashboardData?.date || today}</div>
+        <div className="text-sm text-slate-500">{daylogData?.date || today}</div>
       </div>
 
       {/* Metric Cards */}
@@ -170,7 +191,7 @@ const Dashboard = () => {
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-600">Today's Sleep Duration</p>
               <p className="text-2xl font-bold text-slate-900">
-                {dashboardData?.daylog?.sleep_duration ? dashboardData.daylog.sleep_duration : 'N/A'}
+                {daylogData?.sleep_duration ? `${daylogData.sleep_duration.toFixed(1)}h` : 'N/A'}
               </p>
               
               {/* Yesterday's Bed Time Section (for sleep duration calculation) */}
@@ -182,7 +203,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <input
                           type="time"
-                          value={daylogForm.yesterday_bed_time}
+                          value={normalizeTimeInput(daylogForm.yesterday_bed_time)}
                           onChange={(e) => setDaylogForm({ ...daylogForm, yesterday_bed_time: e.target.value })}
                           className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                         />
@@ -202,16 +223,13 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {daylogForm.yesterday_bed_time || dashboardData?.daylog?.yesterday_bed_time || 'Not set'}
+                        {formatTimeToAMPM(daylogForm.yesterday_bed_time || daylogData?.yesterday_bed_time || yesterdayDaylog?.bed_time)}
                       </p>
                     )}
                   </div>
                   {!editingYesterdayBedTime && (
                     <button
-                      onClick={() => {
-                        console.log('Edit yesterday bed time clicked');
-                        setEditingYesterdayBedTime(true);
-                      }}
+                      onClick={() => setEditingYesterdayBedTime(true)}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -229,7 +247,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <input
                           type="time"
-                          value={daylogForm.today_bed_time}
+                          value={normalizeTimeInput(daylogForm.today_bed_time)}
                           onChange={(e) => setDaylogForm({ ...daylogForm, today_bed_time: e.target.value })}
                           className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                         />
@@ -249,16 +267,13 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {daylogForm.today_bed_time || dashboardData?.daylog?.bed_time || 'Not set'}
+                        {formatTimeToAMPM(daylogForm.today_bed_time || daylogData?.bed_time)}
                       </p>
                     )}
                   </div>
                   {!editingTodayBedTime && (
                     <button
-                      onClick={() => {
-                        console.log('Edit today bed time clicked');
-                        setEditingTodayBedTime(true);
-                      }}
+                      onClick={() => setEditingTodayBedTime(true)}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -276,7 +291,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <input
                           type="time"
-                          value={daylogForm.wake_time}
+                          value={normalizeTimeInput(daylogForm.wake_time)}
                           onChange={(e) => setDaylogForm({ ...daylogForm, wake_time: e.target.value })}
                           className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                         />
@@ -296,16 +311,13 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {daylogForm.wake_time || dashboardData?.daylog?.wake_time || 'Not set'}
+                        {formatTimeToAMPM(daylogForm.wake_time || daylogData?.wake_time)}
                       </p>
                     )}
                   </div>
                   {!editingWakeTime && (
                     <button
-                      onClick={() => {
-                        console.log('Edit wake time clicked');
-                        setEditingWakeTime(true);
-                      }}
+                      onClick={() => setEditingWakeTime(true)}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -325,7 +337,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-slate-600">Productivity Score</p>
               <p className="text-2xl font-bold text-slate-900">
-                {dashboardData?.productivity_score || 0}
+                {daylogData?.productivity_score || 0}
               </p>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg">

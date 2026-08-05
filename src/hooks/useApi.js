@@ -81,9 +81,10 @@ export const useUpdateDaylog = () => {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['daylogs'] });
+      queryClient.invalidateQueries({ queryKey: ['daylog'] });
       success('Daylog updated successfully!');
     },
     onError: (_err) => {
@@ -233,5 +234,16 @@ export const useTrackerData = (startDate, endDate, refreshKey = 0) => {
     queryKey: ['tracker', startDate, endDate, refreshKey],
     queryFn: () => fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`, token),
     enabled: !!token && !!startDate && !!endDate && startDate !== null && endDate !== null,
+  });
+};
+
+// Daylog by Date Query
+export const useDaylogByDate = (date) => {
+  const { token } = useAuth();
+
+  return useQuery({
+    queryKey: ['daylog', date],
+    queryFn: () => fetchWithAuth(`/daylogs/by_date/${date}`, token),
+    enabled: !!token && !!date,
   });
 };
