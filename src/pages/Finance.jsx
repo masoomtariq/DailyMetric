@@ -178,14 +178,14 @@ const Finance = () => {
   }
 
   // Use transactions directly - no additional filtering needed for custom range
-  const financeData = transactionsArray;
+  const processedFinanceData = transactionsArray;
   
   // Recalculate income/expense based on filtered data
-  const monthlyIncome = (financeData || [])
+  const monthlyIncome = (processedFinanceData || [])
     .filter(t => t && t.category === 'income')
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
   
-  const monthlyExpense = (financeData || [])
+  const monthlyExpense = (processedFinanceData || [])
     .filter(t => t && t.category === 'expense')
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
@@ -224,7 +224,7 @@ const Finance = () => {
   const balance = balanceData?.total_balance || 0;
 
   // Group transactions by date for feed view
-  const groupedTransactions = financeData?.reduce((groups, transaction) => {
+  const groupedTransactions = processedFinanceData?.reduce((groups, transaction) => {
     const date = transaction.date || transaction.created_at;
     if (!groups[date]) {
       groups[date] = [];
@@ -235,7 +235,7 @@ const Finance = () => {
 
   // Calculate daily net balance for calendar view
   const calculateDailyNetBalance = (date) => {
-    const dayTransactions = financeData?.filter(t => (t.date || t.created_at) === date) || [];
+    const dayTransactions = processedFinanceData?.filter(t => (t.date || t.created_at) === date) || [];
     const income = dayTransactions.filter(t => t.category === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const expense = dayTransactions.filter(t => t.category === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
     return income - expense;
@@ -482,7 +482,7 @@ const Finance = () => {
             <div className="p-4 sm:p-6 border-b border-slate-200">
               <h3 className="font-semibold text-slate-900 text-sm sm:text-base">All Transactions</h3>
             </div>
-            {(!financeData || !Array.isArray(financeData) || financeData.length === 0) ? (
+            {(!processedFinanceData || !Array.isArray(processedFinanceData) || processedFinanceData.length === 0) ? (
               <div className="p-6">
                 <EmptyTransactionState />
               </div>
@@ -499,7 +499,7 @@ const Finance = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {financeData.slice().reverse().map((transaction, index) => {
+                    {processedFinanceData.slice().reverse().map((transaction, index) => {
                       const tx = Array.isArray(transaction) ? transaction[0] : transaction;
                       if (!tx) return null;
                       
@@ -542,7 +542,7 @@ const Finance = () => {
               <div className="text-center text-slate-500">
                 <p>Calendar view implementation pending - showing basic transaction list</p>
                 <div className="mt-4 space-y-2">
-                  {financeData?.slice(0, 5).map((transaction, index) => {
+                  {processedFinanceData?.slice(0, 5).map((transaction, index) => {
                     const tx = Array.isArray(transaction) ? transaction[0] : transaction;
                     if (!tx) return null;
                     const netBalance = calculateDailyNetBalance(tx.date || tx.created_at);

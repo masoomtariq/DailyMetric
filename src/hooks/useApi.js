@@ -238,7 +238,7 @@ export const useFinanceDataByDateRange = (startDate, endDate, refreshKey = 0) =>
       if (endDate && endDate !== 'all') params.append('end_date', endDate);
       return fetchWithAuth(`/finance/transaction_history?${params.toString()}`, token);
     },
-    enabled: !!token && !!startDate && !!endDate && startDate !== null && endDate !== null,
+    enabled: !!token && ((startDate !== null && endDate !== null) || (startDate === 'all' && endDate === 'all')),
   });
 };
 
@@ -264,7 +264,7 @@ export const useTrackerData = (startDate, endDate, refreshKey = 0) => {
       }
       return fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`, token);
     },
-    enabled: !!token && !!startDate && !!endDate && startDate !== null && endDate !== null,
+    enabled: !!token && ((startDate !== null && endDate !== null) || (startDate === 'all' && endDate === 'all')),
   });
 };
 
