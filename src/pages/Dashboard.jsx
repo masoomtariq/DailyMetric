@@ -53,9 +53,13 @@ const Dashboard = () => {
   const handleWakeTimeUpdate = () => {
     if (dashboardData?.daylog?.id) {
       // Use daylog_id for wake_time update
+      // API requires date in body
       updateDaylog.mutate({
         id: dashboardData.daylog.id,
-        data: { wake_time: daylogForm.wake_time },
+        data: { 
+          date: today,
+          wake_time: daylogForm.wake_time 
+        },
         useDate: false,
       }, {
         onSuccess: () => {
@@ -67,9 +71,13 @@ const Dashboard = () => {
 
   const handleYesterdayBedTimeUpdate = () => {
     // Use yesterday's date for yesterday_bed_time update
+    // API requires date in body and uses bed_time field (not yesterday_bed_time)
     updateDaylog.mutate({
       id: yesterdayDate,
-      data: { yesterday_bed_time: daylogForm.yesterday_bed_time },
+      data: { 
+        date: yesterdayDate,
+        bed_time: daylogForm.yesterday_bed_time 
+      },
       useDate: true,
     }, {
       onSuccess: () => {
@@ -81,9 +89,13 @@ const Dashboard = () => {
   const handleTodayBedTimeUpdate = () => {
     if (dashboardData?.daylog?.id) {
       // Use daylog_id for today's bed_time update
+      // API requires date in body
       updateDaylog.mutate({
         id: dashboardData.daylog.id,
-        data: { bed_time: daylogForm.today_bed_time },
+        data: { 
+          date: today,
+          bed_time: daylogForm.today_bed_time 
+        },
         useDate: false,
       }, {
         onSuccess: () => {

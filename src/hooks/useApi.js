@@ -74,7 +74,7 @@ export const useUpdateDaylog = () => {
   return useMutation({
     mutationFn: ({ id, data, useDate = false }) => {
       const endpoint = useDate 
-        ? `/daylogs/update_daylog?date=${id}`
+        ? `/daylogs/update_daylog?daylog_date=${id}`
         : `/daylogs/update_daylog?day_log_id=${id}`;
       return fetchWithAuth(endpoint, token, {
         method: 'PATCH',
