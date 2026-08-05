@@ -18,11 +18,11 @@ const Dashboard = () => {
   const [quickEntryTab, setQuickEntryTab] = useState('activity');
 
   // Daylog inline editing state
-  const [editingDaylog, setEditingDaylog] = useState(false);
+  const [editingBedTime, setEditingBedTime] = useState(false);
+  const [editingWakeTime, setEditingWakeTime] = useState(false);
   const [daylogForm, setDaylogForm] = useState({
     bed_time: '',
     wake_time: '',
-    sleep_time: '',
   });
 
   // Handle errors silently with toast notification
@@ -38,19 +38,35 @@ const Dashboard = () => {
       setDaylogForm({
         bed_time: dashboardData.daylog.bed_time || '',
         wake_time: dashboardData.daylog.wake_time || '',
-        sleep_time: dashboardData.daylog.sleep_time || '',
       });
     }
   }, [dashboardData]);
 
-  const handleDaylogSubmit = () => {
+  const handleWakeTimeUpdate = () => {
     if (dashboardData?.daylog?.id) {
+      // Use daylog_id for wake_time update
       updateDaylog.mutate({
         id: dashboardData.daylog.id,
-        data: daylogForm,
+        data: { wake_time: daylogForm.wake_time },
+        useDate: false,
       }, {
         onSuccess: () => {
-          setEditingDaylog(false);
+          setEditingWakeTime(false);
+        },
+      });
+    }
+  };
+
+  const handleBedTimeUpdate = () => {
+    if (dashboardData?.daylog?.date) {
+      // Use date instead of daylog_id for bed_time update
+      updateDaylog.mutate({
+        id: dashboardData.daylog.date,
+        data: { bed_time: daylogForm.bed_time },
+        useDate: true,
+      }, {
+        onSuccess: () => {
+          setEditingBedTime(false);
         },
       });
     }
@@ -99,82 +115,101 @@ const Dashboard = () => {
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600">Today's Sleep</p>
-              {editingDaylog ? (
-                <div className="mt-2 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Bed Time</label>
-                      <input
-                        type="time"
-                        value={daylogForm.bed_time}
-                        onChange={(e) => setDaylogForm({ ...daylogForm, bed_time: e.target.value })}
-                        className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1">Wake Time</label>
-                      <input
-                        type="time"
-                        value={daylogForm.wake_time}
-                        onChange={(e) => setDaylogForm({ ...daylogForm, wake_time: e.target.value })}
-                        className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                      />
-                    </div>
-                  </div>
+              <p className="text-sm font-medium text-slate-600">Today's Sleep Duration</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {dashboardData?.daylog?.sleep_duration ? dashboardData.daylog.sleep_duration : 'N/A'}
+              </p>
+              
+              {/* Separate Bed Time Section */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Sleep Time</label>
-                    <input
-                      type="time"
-                      value={daylogForm.sleep_time}
-                      onChange={(e) => setDaylogForm({ ...daylogForm, sleep_time: e.target.value })}
-                      className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    />
+                    <p className="text-xs text-slate-500">Bed Time</p>
+                    {editingBedTime ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="time"
+                          value={daylogForm.bed_time}
+                          onChange={(e) => setDaylogForm({ ...daylogForm, bed_time: e.target.value })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                        <button
+                          onClick={handleBedTimeUpdate}
+                          disabled={updateDaylog.isPending}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {updateDaylog.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingBedTime(false)}
+                          className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-700">
+                        {dashboardData?.daylog?.bed_time || 'Not set'}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex gap-2">
+                  {!editingBedTime && (
                     <button
-                      onClick={handleDaylogSubmit}
-                      disabled={updateDaylog.isPending}
-                      className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+                      onClick={() => setEditingBedTime(true)}
+                      className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
-                      {updateDaylog.isPending ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => setEditingDaylog(false)}
-                      className="px-3 py-1 bg-slate-200 text-slate-700 rounded text-sm hover:bg-slate-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {dashboardData?.daylog?.sleep_time ? dashboardData.daylog.sleep_time : 'N/A'}
-                  </p>
-                  {!dashboardData?.daylog?.sleep_time && (
-                    <button
-                      onClick={() => setEditingDaylog(true)}
-                      className="mt-1 text-sm text-indigo-600 hover:text-indigo-700"
-                    >
-                      Add sleep data
+                      <PencilIcon className="h-3 w-3" />
                     </button>
                   )}
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <ClockIcon className="h-6 w-6 text-blue-600" />
+                </div>
               </div>
-              {!editingDaylog && (
-                <button
-                  onClick={() => setEditingDaylog(true)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </button>
-              )}
+
+              {/* Separate Wake Time Section */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">Wake Time</p>
+                    {editingWakeTime ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="time"
+                          value={daylogForm.wake_time}
+                          onChange={(e) => setDaylogForm({ ...daylogForm, wake_time: e.target.value })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                        <button
+                          onClick={handleWakeTimeUpdate}
+                          disabled={updateDaylog.isPending}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {updateDaylog.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingWakeTime(false)}
+                          className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-700">
+                        {dashboardData?.daylog?.wake_time || 'Not set'}
+                      </p>
+                    )}
+                  </div>
+                  {!editingWakeTime && (
+                    <button
+                      onClick={() => setEditingWakeTime(true)}
+                      className="text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <PencilIcon className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <ClockIcon className="h-6 w-6 text-blue-600" />
             </div>
           </div>
         </div>

@@ -72,10 +72,15 @@ export const useUpdateDaylog = () => {
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => fetchWithAuth(`/daylogs/update_daylog?day_log_id=${id}`, token, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: ({ id, data, useDate = false }) => {
+      const endpoint = useDate 
+        ? `/daylogs/update_daylog?date=${id}`
+        : `/daylogs/update_daylog?day_log_id=${id}`;
+      return fetchWithAuth(endpoint, token, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['daylogs'] });
