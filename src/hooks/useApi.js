@@ -81,7 +81,7 @@ export const useUpdateDaylog = () => {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['daylogs'] });
       queryClient.invalidateQueries({ queryKey: ['daylog'] });

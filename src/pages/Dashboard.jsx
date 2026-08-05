@@ -53,6 +53,16 @@ const Dashboard = () => {
     return timeString.split(':').slice(0, 2).join(':');
   };
 
+  // Function to ensure time is in HH:MM:SS format for API calls
+  const formatTimeForAPI = (time) => {
+    if (!time) return null;
+    const parts = time.split(':');
+    if (parts.length === 2) {
+      return time + ':00';
+    }
+    return time;
+  };
+
   // Quick entry tab state
   const [quickEntryTab, setQuickEntryTab] = useState('activity');
 
@@ -77,10 +87,24 @@ const Dashboard = () => {
   useEffect(() => {
     // According to the OpenAPI schema, fields are at root level, not nested under daylog
     if (dashboardData) {
+      const yesterdayBedTime = yesterdayDaylog?.bed_time || dashboardData.yesterday_bed_time || '';
+      const todayBedTime = dashboardData.bed_time || '';
+      const wakeTime = dashboardData.wake_time || '';
+      
+      // Ensure time values have proper format (HH:MM:SS)
+      const formatTime = (time) => {
+        if (!time) return '';
+        const parts = time.split(':');
+        if (parts.length === 2) {
+          return time + ':00'; // Add seconds if missing
+        }
+        return time;
+      };
+      
       setDaylogForm({
-        yesterday_bed_time: yesterdayDaylog?.bed_time || dashboardData.yesterday_bed_time || '',
-        today_bed_time: dashboardData.bed_time || '',
-        wake_time: dashboardData.wake_time || '',
+        yesterday_bed_time: formatTime(yesterdayBedTime),
+        today_bed_time: formatTime(todayBedTime),
+        wake_time: formatTime(wakeTime),
       });
     }
   }, [dashboardData, yesterdayDaylog]);
@@ -91,7 +115,7 @@ const Dashboard = () => {
       id: today,
       data: { 
         date: today,
-        wake_time: daylogForm.wake_time 
+        wake_time: formatTimeForAPI(daylogForm.wake_time)
       },
       useDate: true,
     }, {
@@ -111,7 +135,7 @@ const Dashboard = () => {
       id: yesterdayDate,
       data: { 
         date: yesterdayDate,
-        bed_time: daylogForm.yesterday_bed_time 
+        bed_time: formatTimeForAPI(daylogForm.yesterday_bed_time)
       },
       useDate: true,
     }, {
@@ -130,7 +154,7 @@ const Dashboard = () => {
       id: today,
       data: { 
         date: today,
-        bed_time: daylogForm.today_bed_time 
+        bed_time: formatTimeForAPI(daylogForm.today_bed_time)
       },
       useDate: true,
     }, {
@@ -238,50 +262,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Today's Bed Time Section (separate element) */}
-              <div className="mt-3 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-slate-500">Today's Bed Time</p>
-                    {editingTodayBedTime ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <input
-                          type="time"
-                          value={normalizeTimeInput(daylogForm.today_bed_time)}
-                          onChange={(e) => setDaylogForm({ ...daylogForm, today_bed_time: e.target.value })}
-                          className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                        />
-                        <button
-                          onClick={handleTodayBedTimeUpdate}
-                          disabled={updateDaylog.isPending}
-                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                          {updateDaylog.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          onClick={() => setEditingTodayBedTime(false)}
-                          className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-slate-700">
-                        {formatTimeToAMPM(daylogForm.today_bed_time || daylogData?.bed_time)}
-                      </p>
-                    )}
-                  </div>
-                  {!editingTodayBedTime && (
-                    <button
-                      onClick={() => setEditingTodayBedTime(true)}
-                      className="text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      <PencilIcon className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
               {/* Wake Time Section */}
               <div className="mt-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between">
@@ -318,6 +298,50 @@ const Dashboard = () => {
                   {!editingWakeTime && (
                     <button
                       onClick={() => setEditingWakeTime(true)}
+                      className="text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <PencilIcon className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Today's Bed Time Section (separate element) */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">Today's Bed Time</p>
+                    {editingTodayBedTime ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="time"
+                          value={normalizeTimeInput(daylogForm.today_bed_time)}
+                          onChange={(e) => setDaylogForm({ ...daylogForm, today_bed_time: e.target.value })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                        <button
+                          onClick={handleTodayBedTimeUpdate}
+                          disabled={updateDaylog.isPending}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {updateDaylog.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingTodayBedTime(false)}
+                          className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-700">
+                        {formatTimeToAMPM(daylogForm.today_bed_time || daylogData?.bed_time)}
+                      </p>
+                    )}
+                  </div>
+                  {!editingTodayBedTime && (
+                    <button
+                      onClick={() => setEditingTodayBedTime(true)}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
