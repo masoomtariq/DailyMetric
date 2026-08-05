@@ -85,6 +85,7 @@ export const useUpdateDaylog = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['daylogs'] });
       queryClient.invalidateQueries({ queryKey: ['daylog'] });
+      queryClient.invalidateQueries({ queryKey: ['tracker'] });
       success('Daylog updated successfully!');
     },
     onError: (_err) => {
@@ -156,6 +157,28 @@ export const useCreateTransaction = () => {
   });
 };
 
+export const useUpdateTransaction = () => {
+  const queryClient = useQueryClient();
+  const { token } = useAuth();
+  const { success, error: toastError } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => fetchWithAuth(`/finance/transaction/${id}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
+      queryClient.invalidateQueries({ queryKey: ['totalBalance'] });
+      success('Transaction updated successfully!');
+    },
+    onError: (_err) => {
+      toastError('Failed to update transaction. Please try again.');
+    },
+  });
+};
+
 // Dashboard Query
 export const useDashboardData = (date) => {
   const { token } = useAuth();
@@ -207,9 +230,12 @@ export const useFinanceDataByDateRange = (startDate, endDate, refreshKey = 0) =>
   return useQuery({
     queryKey: ['finance', 'custom', startDate, endDate, refreshKey],
     queryFn: () => {
+      if (startDate === 'all' && endDate === 'all') {
+        return fetchWithAuth('/finance/transaction_history', token);
+      }
       const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      if (startDate && startDate !== 'all') params.append('start_date', startDate);
+      if (endDate && endDate !== 'all') params.append('end_date', endDate);
       return fetchWithAuth(`/finance/transaction_history?${params.toString()}`, token);
     },
     enabled: !!token && !!startDate && !!endDate && startDate !== null && endDate !== null,
@@ -232,7 +258,12 @@ export const useTrackerData = (startDate, endDate, refreshKey = 0) => {
 
   return useQuery({
     queryKey: ['tracker', startDate, endDate, refreshKey],
-    queryFn: () => fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`, token),
+    queryFn: () => {
+      if (startDate === 'all' && endDate === 'all') {
+        return fetchWithAuth('/analytics/tracker', token);
+      }
+      return fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`, token);
+    },
     enabled: !!token && !!startDate && !!endDate && startDate !== null && endDate !== null,
   });
 };

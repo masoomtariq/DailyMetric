@@ -23,6 +23,11 @@ export const TrackerProvider = ({ children }) => {
       return { start: null, end: null };
     }
 
+    // For 'all' option, return special values to indicate no date filtering
+    if (currentDateRange === 'all') {
+      return { start: 'all', end: 'all' };
+    }
+
     const today = new Date();
     const start = new Date();
     const end = new Date();
@@ -53,6 +58,15 @@ export const TrackerProvider = ({ children }) => {
         start.setDate(1);
         end.setMonth(11);
         end.setDate(31);
+        return {
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+        };
+      case 'last_month':
+        start.setMonth(today.getMonth() - 1);
+        start.setDate(1);
+        end.setMonth(today.getMonth());
+        end.setDate(0);
         return {
           start: start.toISOString().split('T')[0],
           end: end.toISOString().split('T')[0],

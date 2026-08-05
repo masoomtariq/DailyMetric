@@ -7,12 +7,13 @@ import { EmptyDateRangeState } from '../components/EmptyState';
 
 // Move dateRangeOptions outside component to avoid recreation on renders
 const dateRangeOptions = [
+  { value: 'all', label: 'All' },
   { value: 'today', label: 'Today' },
   { value: 'this_week', label: 'This Week' },
   { value: 'this_month', label: 'This Month' },
   { value: 'this_year', label: 'This Year' },
+  { value: 'last_month', label: 'Last Month' },
   { value: 'last_7_days', label: 'Last 7 Days' },
-  { value: 'last_30_days', label: 'Last 30 Days' },
   { value: 'custom', label: 'Custom Range' },
 ];
 
@@ -203,7 +204,11 @@ const TrackerContent = () => {
     if (daylog?.id) {
       updateDaylog.mutate({
         id: daylog.id,
-        data: daylogForm,
+        data: {
+          date: editingDaylogDate,
+          bed_time: daylogForm.bed_time,
+          wake_time: daylogForm.wake_time,
+        },
       }, {
         onSuccess: () => {
           setIsDaylogDrawerOpen(false);
@@ -314,7 +319,8 @@ const TrackerContent = () => {
         <div className="mt-3 text-sm text-slate-500">
           {currentDateRange ? (
             <span className="text-indigo-600 font-medium">
-              {currentDateRange === 'custom' ? `Custom range: ${start} to ${end}` : `${start} to ${end}`}
+              {currentDateRange === 'all' ? 'All data' : 
+               currentDateRange === 'custom' ? `Custom range: ${start} to ${end}` : `${start} to ${end}`}
             </span>
           ) : (
             <span>No date range selected</span>
@@ -469,14 +475,14 @@ const TrackerContent = () => {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
               <div className="p-4 sm:p-6 border-b border-slate-200">
                 <h3 className="font-semibold text-slate-900 text-sm sm:text-base">
-                  Calendar View - {start} to {end}
+                  Calendar View - {currentDateRange === 'all' ? 'All data' : `${start} to ${end}`}
                 </h3>
               </div>
               <div className="p-4 sm:p-6">
                 <CalendarView 
                   activities={activities} 
                   daylogs={trackerData?.daylogs || []}
-                  startDate={new Date(start)}
+                  startDate={currentDateRange === 'all' ? new Date() : new Date(start)}
                   onDayClick={(day) => {
                     setSelectedDay(day);
                     setIsDrawerOpen(true);
