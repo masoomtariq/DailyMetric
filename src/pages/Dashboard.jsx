@@ -42,6 +42,7 @@ const Dashboard = () => {
   // Initialize daylog form when data loads
   useEffect(() => {
     if (dashboardData?.daylog) {
+      console.log('Dashboard data:', dashboardData.daylog);
       setDaylogForm({
         yesterday_bed_time: dashboardData.daylog.yesterday_bed_time || '',
         today_bed_time: dashboardData.daylog.bed_time || '',
@@ -51,6 +52,7 @@ const Dashboard = () => {
   }, [dashboardData]);
 
   const handleWakeTimeUpdate = () => {
+    console.log('handleWakeTimeUpdate called', { dashboardData, daylogForm });
     if (dashboardData?.daylog?.id) {
       // Use daylog_id for wake_time update
       // API requires date in body
@@ -63,13 +65,20 @@ const Dashboard = () => {
         useDate: false,
       }, {
         onSuccess: () => {
+          console.log('Wake time update successful');
           setEditingWakeTime(false);
         },
+        onError: (error) => {
+          console.error('Wake time update failed:', error);
+        },
       });
+    } else {
+      console.error('Cannot update wake time: missing daylog id');
     }
   };
 
   const handleYesterdayBedTimeUpdate = () => {
+    console.log('handleYesterdayBedTimeUpdate called', { yesterdayDate, daylogForm });
     // Use yesterday's date for yesterday_bed_time update
     // API requires date in body and uses bed_time field (not yesterday_bed_time)
     updateDaylog.mutate({
@@ -81,12 +90,17 @@ const Dashboard = () => {
       useDate: true,
     }, {
       onSuccess: () => {
+        console.log('Yesterday bed time update successful');
         setEditingYesterdayBedTime(false);
+      },
+      onError: (error) => {
+        console.error('Yesterday bed time update failed:', error);
       },
     });
   };
 
   const handleTodayBedTimeUpdate = () => {
+    console.log('handleTodayBedTimeUpdate called', { dashboardData, daylogForm });
     if (dashboardData?.daylog?.id) {
       // Use daylog_id for today's bed_time update
       // API requires date in body
@@ -99,9 +113,15 @@ const Dashboard = () => {
         useDate: false,
       }, {
         onSuccess: () => {
+          console.log('Today bed time update successful');
           setEditingTodayBedTime(false);
         },
+        onError: (error) => {
+          console.error('Today bed time update failed:', error);
+        },
       });
+    } else {
+      console.error('Cannot update today bed time: missing daylog id');
     }
   };
 
@@ -182,13 +202,16 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {dashboardData?.daylog?.yesterday_bed_time || 'Not set'}
+                        {daylogForm.yesterday_bed_time || dashboardData?.daylog?.yesterday_bed_time || 'Not set'}
                       </p>
                     )}
                   </div>
                   {!editingYesterdayBedTime && (
                     <button
-                      onClick={() => setEditingYesterdayBedTime(true)}
+                      onClick={() => {
+                        console.log('Edit yesterday bed time clicked');
+                        setEditingYesterdayBedTime(true);
+                      }}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -226,13 +249,16 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {dashboardData?.daylog?.bed_time || 'Not set'}
+                        {daylogForm.today_bed_time || dashboardData?.daylog?.bed_time || 'Not set'}
                       </p>
                     )}
                   </div>
                   {!editingTodayBedTime && (
                     <button
-                      onClick={() => setEditingTodayBedTime(true)}
+                      onClick={() => {
+                        console.log('Edit today bed time clicked');
+                        setEditingTodayBedTime(true);
+                      }}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -270,13 +296,16 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-700">
-                        {dashboardData?.daylog?.wake_time || 'Not set'}
+                        {daylogForm.wake_time || dashboardData?.daylog?.wake_time || 'Not set'}
                       </p>
                     )}
                   </div>
                   {!editingWakeTime && (
                     <button
-                      onClick={() => setEditingWakeTime(true)}
+                      onClick={() => {
+                        console.log('Edit wake time clicked');
+                        setEditingWakeTime(true);
+                      }}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
