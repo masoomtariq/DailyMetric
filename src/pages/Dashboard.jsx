@@ -18,10 +18,12 @@ const Dashboard = () => {
   const [quickEntryTab, setQuickEntryTab] = useState('activity');
 
   // Daylog inline editing state
-  const [editingBedTime, setEditingBedTime] = useState(false);
+  const [editingYesterdayBedTime, setEditingYesterdayBedTime] = useState(false);
+  const [editingTodayBedTime, setEditingTodayBedTime] = useState(false);
   const [editingWakeTime, setEditingWakeTime] = useState(false);
   const [daylogForm, setDaylogForm] = useState({
-    bed_time: '',
+    yesterday_bed_time: '',
+    today_bed_time: '',
     wake_time: '',
   });
 
@@ -36,7 +38,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (dashboardData?.daylog) {
       setDaylogForm({
-        bed_time: dashboardData.daylog.bed_time || '',
+        yesterday_bed_time: dashboardData.daylog.yesterday_bed_time || '',
+        today_bed_time: dashboardData.daylog.bed_time || '',
         wake_time: dashboardData.daylog.wake_time || '',
       });
     }
@@ -57,16 +60,31 @@ const Dashboard = () => {
     }
   };
 
-  const handleBedTimeUpdate = () => {
+  const handleYesterdayBedTimeUpdate = () => {
     if (dashboardData?.daylog?.date) {
-      // Use date instead of daylog_id for bed_time update
+      // Use date instead of daylog_id for yesterday_bed_time update
       updateDaylog.mutate({
         id: dashboardData.daylog.date,
-        data: { bed_time: daylogForm.bed_time },
+        data: { yesterday_bed_time: daylogForm.yesterday_bed_time },
         useDate: true,
       }, {
         onSuccess: () => {
-          setEditingBedTime(false);
+          setEditingYesterdayBedTime(false);
+        },
+      });
+    }
+  };
+
+  const handleTodayBedTimeUpdate = () => {
+    if (dashboardData?.daylog?.id) {
+      // Use daylog_id for today's bed_time update
+      updateDaylog.mutate({
+        id: dashboardData.daylog.id,
+        data: { bed_time: daylogForm.today_bed_time },
+        useDate: false,
+      }, {
+        onSuccess: () => {
+          setEditingTodayBedTime(false);
         },
       });
     }
@@ -120,28 +138,72 @@ const Dashboard = () => {
                 {dashboardData?.daylog?.sleep_duration ? dashboardData.daylog.sleep_duration : 'N/A'}
               </p>
               
-              {/* Separate Bed Time Section */}
+              {/* Yesterday's Bed Time Section (for sleep duration calculation) */}
               <div className="mt-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-500">Bed Time</p>
-                    {editingBedTime ? (
+                    <p className="text-xs text-slate-500">Yesterday's Bed Time</p>
+                    {editingYesterdayBedTime ? (
                       <div className="flex items-center gap-2 mt-1">
                         <input
                           type="time"
-                          value={daylogForm.bed_time}
-                          onChange={(e) => setDaylogForm({ ...daylogForm, bed_time: e.target.value })}
+                          value={daylogForm.yesterday_bed_time}
+                          onChange={(e) => setDaylogForm({ ...daylogForm, yesterday_bed_time: e.target.value })}
                           className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                         />
                         <button
-                          onClick={handleBedTimeUpdate}
+                          onClick={handleYesterdayBedTimeUpdate}
                           disabled={updateDaylog.isPending}
                           className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
                         >
                           {updateDaylog.isPending ? 'Saving...' : 'Save'}
                         </button>
                         <button
-                          onClick={() => setEditingBedTime(false)}
+                          onClick={() => setEditingYesterdayBedTime(false)}
+                          className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-700">
+                        {dashboardData?.daylog?.yesterday_bed_time || 'Not set'}
+                      </p>
+                    )}
+                  </div>
+                  {!editingYesterdayBedTime && (
+                    <button
+                      onClick={() => setEditingYesterdayBedTime(true)}
+                      className="text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <PencilIcon className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Today's Bed Time Section (separate element) */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">Today's Bed Time</p>
+                    {editingTodayBedTime ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="time"
+                          value={daylogForm.today_bed_time}
+                          onChange={(e) => setDaylogForm({ ...daylogForm, today_bed_time: e.target.value })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                        <button
+                          onClick={handleTodayBedTimeUpdate}
+                          disabled={updateDaylog.isPending}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {updateDaylog.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingTodayBedTime(false)}
                           className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs hover:bg-slate-300"
                         >
                           Cancel
@@ -153,9 +215,9 @@ const Dashboard = () => {
                       </p>
                     )}
                   </div>
-                  {!editingBedTime && (
+                  {!editingTodayBedTime && (
                     <button
-                      onClick={() => setEditingBedTime(true)}
+                      onClick={() => setEditingTodayBedTime(true)}
                       className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
                       <PencilIcon className="h-3 w-3" />
@@ -164,7 +226,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Separate Wake Time Section */}
+              {/* Wake Time Section */}
               <div className="mt-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <div>
