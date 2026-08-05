@@ -11,9 +11,6 @@ const TransactionFormEngine = ({ onSubmit, initialData = {}, isLoading = false }
     // Expense fields
     expense_type: initialData.expense_type || '',
     custom_expense_type: initialData.custom_expense_type || '',
-    petrol_litres: initialData.petrol_litres || '',
-    petrol_day_mode: initialData.petrol_day_mode || '',
-    lunch_what_did: initialData.lunch_what_did || '',
   });
 
   const handleChange = (field, value) => {
@@ -36,22 +33,11 @@ const TransactionFormEngine = ({ onSubmit, initialData = {}, isLoading = false }
 
     // Expense logic
     if (formData.category === 'expense') {
-      const resolvedExpenseType = formData.expense_type === 'Others' 
-        ? formData.custom_expense_type 
+      const resolvedExpenseType = formData.expense_type === 'Others'
+        ? formData.custom_expense_type
         : formData.expense_type;
-      
+
       payload.details.expense_type = resolvedExpenseType;
-
-      // Sub-rule: Petrol
-      if (resolvedExpenseType.toLowerCase() === 'petrol') {
-        payload.details.litres = parseFloat(formData.petrol_litres);
-        payload.details.day_mode = formData.petrol_day_mode;
-      }
-
-      // Sub-rule: Lunch
-      if (resolvedExpenseType.toLowerCase() === 'lunch') {
-        payload.details.what_did_you_eat = formData.lunch_what_did;
-      }
     }
 
     // Remove empty details object if no details present
@@ -152,55 +138,6 @@ const TransactionFormEngine = ({ onSubmit, initialData = {}, isLoading = false }
                 onChange={(e) => handleChange('custom_expense_type', e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="e.g., Groceries, Utilities"
-                required
-              />
-            </div>
-          )}
-
-          {/* Petrol-specific fields */}
-          {(formData.expense_type === 'Petrol' || 
-            (formData.expense_type === 'Others' && formData.custom_expense_type?.toLowerCase() === 'petrol')) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Litres</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.petrol_litres}
-                  onChange={(e) => handleChange('petrol_litres', e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="e.g., 25.5"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Day Mode</label>
-                <select
-                  value={formData.petrol_day_mode}
-                  onChange={(e) => handleChange('petrol_day_mode', e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                >
-                  <option value="">Select time</option>
-                  <option value="Morning">Morning</option>
-                  <option value="Noon">Noon</option>
-                  <option value="Evening">Evening</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Lunch-specific fields */}
-          {(formData.expense_type === 'Lunch' || 
-            (formData.expense_type === 'Others' && formData.custom_expense_type?.toLowerCase() === 'lunch')) && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">What did you eat?</label>
-              <input
-                type="text"
-                value={formData.lunch_what_did}
-                onChange={(e) => handleChange('lunch_what_did', e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="e.g., Sandwich, Salad, Pasta"
                 required
               />
             </div>
