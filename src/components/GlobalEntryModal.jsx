@@ -19,7 +19,7 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
     date: new Date().toISOString().split('T')[0],
     bed_time: '',
     wake_time: '',
-    manual_sleep_time: '',
+    sleep_time: '',
     notes: '',
   });
 
@@ -33,14 +33,14 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
   const handleDaylogSubmit = (e) => {
     e.preventDefault();
     
-    // onSubmit interceptor: if manual_sleep_time is blank, calculate from bed_time + 15 minutes
+    // onSubmit interceptor: if sleep_time is blank, calculate from bed_time + 15 minutes
     let submitData = { ...daylogData };
-    if (!submitData.manual_sleep_time && submitData.bed_time) {
+    if (!submitData.sleep_time && submitData.bed_time) {
       const [hours, minutes] = submitData.bed_time.split(':');
       const bedTimeDate = new Date();
       bedTimeDate.setHours(parseInt(hours), parseInt(minutes) + 15);
       const calculatedTime = bedTimeDate.toTimeString().slice(0, 5);
-      submitData.manual_sleep_time = calculatedTime;
+      submitData.sleep_time = calculatedTime;
     }
 
     createDaylog.mutate(submitData, {
@@ -50,7 +50,7 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
           date: new Date().toISOString().split('T')[0],
           bed_time: '',
           wake_time: '',
-          manual_sleep_time: '',
+          sleep_time: '',
           notes: '',
         });
         onClose();
@@ -178,11 +178,11 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Manual Sleep Time (optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Sleep Time (optional)</label>
                     <input
                       type="time"
-                      value={daylogData.manual_sleep_time}
-                      onChange={(e) => setDaylogData({ ...daylogData, manual_sleep_time: e.target.value })}
+                      value={daylogData.sleep_time}
+                      onChange={(e) => setDaylogData({ ...daylogData, sleep_time: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Auto-calculated from bed time if left blank"
                     />

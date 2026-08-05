@@ -72,8 +72,8 @@ export const useUpdateDaylog = () => {
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => fetchWithAuth(`/daylogs/update_daylog/by_id/${id}`, token, {
-      method: 'PUT',
+    mutationFn: ({ id, data }) => fetchWithAuth(`/daylogs/update_daylog?day_log_id=${id}`, token, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
     onSuccess: () => {

@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [daylogForm, setDaylogForm] = useState({
     bed_time: '',
     wake_time: '',
+    sleep_time: '',
   });
 
   // Handle errors silently with toast notification
@@ -37,6 +38,7 @@ const Dashboard = () => {
       setDaylogForm({
         bed_time: dashboardData.daylog.bed_time || '',
         wake_time: dashboardData.daylog.wake_time || '',
+        sleep_time: dashboardData.daylog.sleep_time || '',
       });
     }
   }, [dashboardData]);
@@ -120,6 +122,15 @@ const Dashboard = () => {
                       />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Sleep Time</label>
+                    <input
+                      type="time"
+                      value={daylogForm.sleep_time}
+                      onChange={(e) => setDaylogForm({ ...daylogForm, sleep_time: e.target.value })}
+                      className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleDaylogSubmit}
@@ -139,9 +150,9 @@ const Dashboard = () => {
               ) : (
                 <>
                   <p className="text-2xl font-bold text-slate-900">
-                    {dashboardData?.sleep_time ? dashboardData.sleep_time : 'N/A'}
+                    {dashboardData?.daylog?.sleep_time ? dashboardData.daylog.sleep_time : 'N/A'}
                   </p>
-                  {!dashboardData?.sleep_time && (
+                  {!dashboardData?.daylog?.sleep_time && (
                     <button
                       onClick={() => setEditingDaylog(true)}
                       className="mt-1 text-sm text-indigo-600 hover:text-indigo-700"

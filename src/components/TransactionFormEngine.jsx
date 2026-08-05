@@ -25,12 +25,13 @@ const TransactionFormEngine = ({ onSubmit, initialData = {}, isLoading = false }
       date: formData.date,
       category: formData.category,
       amount: parseFloat(formData.amount),
-      note: formData.note,
+      note: formData.note || null,
+      details: {},
     };
 
     // Income logic
     if (formData.category === 'income') {
-      payload.source = formData.source;
+      payload.details.source = formData.source;
     }
 
     // Expense logic
@@ -39,18 +40,23 @@ const TransactionFormEngine = ({ onSubmit, initialData = {}, isLoading = false }
         ? formData.custom_expense_type 
         : formData.expense_type;
       
-      payload.expense_type = resolvedExpenseType;
+      payload.details.expense_type = resolvedExpenseType;
 
       // Sub-rule: Petrol
       if (resolvedExpenseType.toLowerCase() === 'petrol') {
-        payload.litres = parseFloat(formData.petrol_litres);
-        payload.day_mode = formData.petrol_day_mode;
+        payload.details.litres = parseFloat(formData.petrol_litres);
+        payload.details.day_mode = formData.petrol_day_mode;
       }
 
       // Sub-rule: Lunch
       if (resolvedExpenseType.toLowerCase() === 'lunch') {
-        payload.what_did_you_eat = formData.lunch_what_did;
+        payload.details.what_did_you_eat = formData.lunch_what_did;
       }
+    }
+
+    // Remove empty details object if no details present
+    if (Object.keys(payload.details).length === 0) {
+      delete payload.details;
     }
 
     return payload;

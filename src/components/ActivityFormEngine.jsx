@@ -2,8 +2,30 @@ import { useState } from 'react';
 import { useGoals } from '../hooks/useApi';
 
 const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) => {
-  const { data: goalsData } = useGoals();
-  const goals = goalsData || [];
+  const { data: goalsData, isLoading: goalsLoading, error: goalsError } = useGoals();
+  
+  // Handle goals data defensively - it might be an object with different structure
+  let goals = [];
+  if (Array.isArray(goalsData)) {
+    goals = goalsData;
+  } else if (goalsData && typeof goalsData === 'object') {
+    // Try to extract array from common response structures
+    if (Array.isArray(goalsData.goals)) {
+      goals = goalsData.goals;
+    } else if (Array.isArray(goalsData.data)) {
+      goals = goalsData.data;
+    } else if (Array.isArray(goalsData.results)) {
+      goals = goalsData.results;
+    } else if (Array.isArray(goalsData.items)) {
+      goals = goalsData.items;
+    } else {
+      // Try to find any array property
+      const arrayKey = Object.keys(goalsData).find(key => Array.isArray(goalsData[key]));
+      if (arrayKey) {
+        goals = goalsData[arrayKey];
+      }
+    }
+  }
 
   const [formData, setFormData] = useState({
     date: initialData.date || new Date().toISOString().split('T')[0],
@@ -50,95 +72,123 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
   });
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    try {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    } catch (error) {
+      console.error('Error updating form data:', error);
+    }
   };
 
   const preparePayload = () => {
-    const payload = {
-      date: formData.date,
-      category: formData.category,
-      note: formData.note,
-    };
+    try {
+      const payload = {
+        date: formData.date,
+        category: formData.category,
+        note: formData.note || null,
+        activity_type_name: '',
+        details: {},
+      };
 
-    // Prayer logic
-    if (formData.category === 'prayer') {
-      payload.type = formData.prayer_type === 'Other' ? formData.custom_prayer_type : formData.prayer_type;
-      payload.done = formData.prayer_done;
-      if (formData.prayer_done) {
-        payload.place = formData.prayer_place === 'Others' ? formData.custom_prayer_place : formData.prayer_place;
-        payload.on_time = formData.prayer_on_time;
-        if (formData.prayer_on_time) {
-          payload.jamaat = formData.prayer_jamaat;
+      // Prayer logic
+      if (formData.category === 'prayer') {
+        payload.activity_type_name = formData.prayer_type === 'Other' ? formData.custom_prayer_type : formData.prayer_type;
+        payload.details.done = formData.prayer_done;
+        if (formData.prayer_done) {
+          payload.details.place = formData.prayer_place === 'Others' ? formData.custom_prayer_place : formData.prayer_place;
+          payload.details.on_time = formData.prayer_on_time;
+          if (formData.prayer_on_time) {
+            payload.details.jamaat = formData.prayer_jamaat;
+          }
+        }
+        // Strictly exclude goal_name for prayer
+        delete payload.goal_name;
+      }
+
+      // Meal logic
+      if (formData.category === 'meal') {
+        payload.activity_type_name = formData.meal_type === 'Others' ? formData.custom_meal_type : formData.meal_type;
+        payload.details.done = formData.meal_done;
+        if (formData.meal_done) {
+          payload.goal_name = formData.meal_goal_name || null;
+          payload.details.time = formData.meal_time || null;
+          payload.details.quantity = formData.meal_quantity || null;
+          payload.details.place = formData.meal_place === 'Others' ? formData.custom_meal_place : formData.meal_place;
         }
       }
-      // Strictly exclude goal_name for prayer
-      delete payload.goal_name;
-    }
 
-    // Meal logic
-    if (formData.category === 'meal') {
-      payload.type = formData.meal_type === 'Others' ? formData.custom_meal_type : formData.meal_type;
-      payload.done = formData.meal_done;
-      if (formData.meal_done) {
-        payload.goal_name = formData.meal_goal_name;
-        payload.time = formData.meal_time;
-        payload.quantity = formData.meal_quantity;
-        payload.place = formData.meal_place === 'Others' ? formData.custom_meal_place : formData.meal_place;
-      }
-    }
-
-    // Habit logic
-    if (formData.category === 'habit') {
-      payload.type = formData.habit_type;
-      payload.done = formData.habit_done;
-      if (formData.habit_done) {
-        payload.goal_name = formData.habit_goal_name;
-        payload.time = formData.habit_time;
-      }
-    }
-
-    // Exercise logic (bypass Done checkbox)
-    if (formData.category === 'exercise') {
-      payload.goal_name = formData.exercise_goal_name;
-      payload.type = formData.exercise_type;
-      payload.time = formData.exercise_time;
-      payload.duration = formData.exercise_duration;
-      payload.sets = formData.exercise_sets;
-      payload.reps = formData.exercise_reps;
-    }
-
-    // Productivity logic (bypass Done checkbox)
-    if (formData.category === 'productivity') {
-      payload.goal_name = formData.productivity_goal_name;
-      payload.type = formData.productivity_type;
-      payload.place = formData.productivity_place === 'Others' ? formData.custom_productivity_place : formData.productivity_place;
-      payload.time = formData.productivity_time;
-      payload.duration = formData.productivity_duration;
-      payload.what_did = formData.productivity_what_did;
-      payload.result = formData.productivity_result;
-    }
-
-    // Global payload interceptor - replace dropdown values with custom text when "Other/Others" is selected
-    Object.keys(payload).forEach(key => {
-      if (payload[key] === 'Other' || payload[key] === 'Others') {
-        const customKey = `custom_${key}`;
-        if (formData[customKey]) {
-          payload[key] = formData[customKey];
+      // Habit logic
+      if (formData.category === 'habit') {
+        payload.activity_type_name = formData.habit_type;
+        payload.details.done = formData.habit_done;
+        if (formData.habit_done) {
+          payload.goal_name = formData.habit_goal_name || null;
+          payload.details.time = formData.habit_time || null;
         }
       }
-    });
 
-    return payload;
+      // Exercise logic (bypass Done checkbox)
+      if (formData.category === 'exercise') {
+        payload.goal_name = formData.exercise_goal_name || null;
+        payload.activity_type_name = formData.exercise_type;
+        payload.details.time = formData.exercise_time || null;
+        payload.details.duration = formData.exercise_duration || null;
+        payload.details.sets = formData.exercise_sets || null;
+        payload.details.reps = formData.exercise_reps || null;
+      }
+
+      // Productivity logic (bypass Done checkbox)
+      if (formData.category === 'productivity') {
+        payload.goal_name = formData.productivity_goal_name || null;
+        payload.activity_type_name = formData.productivity_type;
+        payload.details.place = formData.productivity_place === 'Others' ? formData.custom_productivity_place : formData.productivity_place;
+        payload.details.time = formData.productivity_time || null;
+        payload.details.duration = formData.productivity_duration || null;
+        payload.details.what_did = formData.productivity_what_did || null;
+        payload.details.result = formData.productivity_result || null;
+      }
+
+      // Global payload interceptor - replace dropdown values with custom text when "Other/Others" is selected
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === 'Other' || payload[key] === 'Others') {
+          const customKey = `custom_${key}`;
+          if (formData[customKey]) {
+            payload[key] = formData[customKey];
+          }
+        }
+      });
+
+      // Remove empty details object if no details present
+      if (Object.keys(payload.details).length === 0) {
+        delete payload.details;
+      }
+
+      return payload;
+    } catch (error) {
+      console.error('Error preparing payload:', error);
+      return {
+        date: formData.date,
+        category: formData.category,
+        note: formData.note || null,
+        activity_type_name: '',
+        details: {},
+      };
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = preparePayload();
-    onSubmit(payload);
+    try {
+      const payload = preparePayload();
+      onSubmit(payload);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+  // Add error boundary for rendering
+  try {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
       {/* Base Fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -315,11 +365,13 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                   value={formData.meal_goal_name}
                   onChange={(e) => handleChange('meal_goal_name', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={goalsLoading}
                 >
                   <option value="">Select goal (optional)</option>
-                  {goals.map((goal, index) => (
+                  {goals.length > 0 && goals.map((goal, index) => (
                     <option key={index} value={goal.title || goal}>{goal.title || goal}</option>
                   ))}
+                  {goalsLoading && <option disabled>Loading goals...</option>}
                 </select>
               </div>
               <div>
@@ -402,11 +454,13 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                   value={formData.habit_goal_name}
                   onChange={(e) => handleChange('habit_goal_name', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={goalsLoading}
                 >
                   <option value="">Select goal (optional)</option>
-                  {goals.map((goal, index) => (
+                  {goals.length > 0 && goals.map((goal, index) => (
                     <option key={index} value={goal.title || goal}>{goal.title || goal}</option>
                   ))}
+                  {goalsLoading && <option disabled>Loading goals...</option>}
                 </select>
               </div>
               <div>
@@ -433,11 +487,13 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                 value={formData.exercise_goal_name}
                 onChange={(e) => handleChange('exercise_goal_name', e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={goalsLoading}
               >
                 <option value="">Select goal (optional)</option>
-                {goals.map((goal, index) => (
+                {goals.length > 0 && goals.map((goal, index) => (
                   <option key={index} value={goal.title || goal}>{goal.title || goal}</option>
                 ))}
+                {goalsLoading && <option disabled>Loading goals...</option>}
               </select>
             </div>
             <div>
@@ -504,11 +560,13 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                 value={formData.productivity_goal_name}
                 onChange={(e) => handleChange('productivity_goal_name', e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={goalsLoading}
               >
                 <option value="">Select goal (optional)</option>
-                {goals.map((goal, index) => (
+                {goals.length > 0 && goals.map((goal, index) => (
                   <option key={index} value={goal.title || goal}>{goal.title || goal}</option>
                 ))}
+                {goalsLoading && <option disabled>Loading goals...</option>}
               </select>
             </div>
             <div>
@@ -610,7 +668,15 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
         {isLoading ? 'Submitting...' : 'Submit Activity'}
       </button>
     </form>
-  );
+    );
+  } catch (error) {
+    console.error('Error rendering ActivityFormEngine:', error);
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-600">Error loading form. Please try refreshing the page.</p>
+      </div>
+    );
+  }
 };
 
 export default ActivityFormEngine;
