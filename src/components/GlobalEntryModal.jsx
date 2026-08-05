@@ -3,6 +3,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useCreateActivity, useCreateDaylog, useCreateGoal, useCreateTransaction } from '../hooks/useApi';
 import { useConfetti } from '../hooks/useConfetti';
+import ActivityFormEngine from './ActivityFormEngine';
+import TransactionFormEngine from './TransactionFormEngine';
 
 const GlobalEntryModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -12,94 +14,89 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
   const createTransaction = useCreateTransaction();
   const { triggerSuccessConfetti } = useConfetti();
 
-  // Activity form state
-  const [activityData, setActivityData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    activity_type_name: '',
-    category: 'habit',
-    note: '',
-  });
-
   // Daylog form state
   const [daylogData, setDaylogData] = useState({
     date: new Date().toISOString().split('T')[0],
     bed_time: '',
     wake_time: '',
+    manual_sleep_time: '',
     notes: '',
   });
 
   // Goal form state
   const [goalData, setGoalData] = useState({
-    date: new Date().toISOString().split('T')[0],
     title: '',
     description: '',
     active_status: true,
   });
 
-  // Transaction form state
-  const [transactionData, setTransactionData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    category: 'expense',
-    amount: '',
-    note: '',
-  });
-
-  const handleSubmit = (e) => {
+  const handleDaylogSubmit = (e) => {
     e.preventDefault();
     
-    if (activeTab === 0) {
-      createActivity.mutate(activityData, {
-        onSuccess: () => {
-          triggerSuccessConfetti();
-          setActivityData({
-            date: new Date().toISOString().split('T')[0],
-            activity_type_name: '',
-            category: 'habit',
-            note: '',
-          });
-          onClose();
-        },
-      });
-    } else if (activeTab === 1) {
-      createDaylog.mutate(daylogData, {
-        onSuccess: () => {
-          triggerSuccessConfetti();
-          setDaylogData({
-            date: new Date().toISOString().split('T')[0],
-            bed_time: '',
-            wake_time: '',
-            notes: '',
-          });
-          onClose();
-        },
-      });
-    } else if (activeTab === 2) {
-      createGoal.mutate(goalData, {
-        onSuccess: () => {
-          triggerSuccessConfetti();
-          setGoalData({
-            date: new Date().toISOString().split('T')[0],
-            title: '',
-            description: '',
-            active_status: true,
-          });
-          onClose();
-        },
-      });
-    } else if (activeTab === 3) {
-      createTransaction.mutate(transactionData, {
-        onSuccess: () => {
-          triggerSuccessConfetti();
-          setTransactionData({
-            date: new Date().toISOString().split('T')[0],
-            category: 'expense',
-            amount: '',
-            note: '',
-          });
-          onClose();
-        },
-      });
+    // onSubmit interceptor: if manual_sleep_time is blank, calculate from bed_time + 15 minutes
+    let submitData = { ...daylogData };
+    if (!submitData.manual_sleep_time && submitData.bed_time) {
+      const [hours, minutes] = submitData.bed_time.split(':');
+      const bedTimeDate = new Date();
+      bedTimeDate.setHours(parseInt(hours), parseInt(minutes) + 15);
+      const calculatedTime = bedTimeDate.toTimeString().slice(0, 5);
+      submitData.manual_sleep_time = calculatedTime;
     }
+
+    createDaylog.mutate(submitData, {
+      onSuccess: () => {
+        triggerSuccessConfetti();
+        setDaylogData({
+          date: new Date().toISOString().split('T')[0],
+          bed_time: '',
+          wake_time: '',
+          manual_sleep_time: '',
+          notes: '',
+        });
+        onClose();
+      },
+    });
+  };
+
+  const handleGoalSubmit = (e) => {
+    e.preventDefault();
+    
+    // Auto-generate current date in background payload
+    const submitData = {
+      ...goalData,
+      date: new Date().toISOString().split('T')[0],
+      active_status: true, // Always set to true by default
+    };
+
+    createGoal.mutate(submitData, {
+      onSuccess: () => {
+        triggerSuccessConfetti();
+        setGoalData({
+          title: '',
+          description: '',
+          active_status: true,
+        });
+        onClose();
+      },
+    });
+  };
+
+  const handleActivitySubmit = (data) => {
+    createActivity.mutate(data, {
+      onSuccess: () => {
+        triggerSuccessConfetti();
+        onClose();
+      },
+    });
+  };
+
+  const handleTransactionSubmit = (data) => {
+    createTransaction.mutate(data, {
+      onSuccess: () => {
+        triggerSuccessConfetti();
+        onClose();
+      },
+    });
   };
 
   if (!isOpen) return null;
@@ -141,67 +138,15 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
             <TabPanels className="flex-1 overflow-y-auto p-4 sm:p-6">
               {/* Activity Tab */}
               <TabPanel className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={activityData.date}
-                        onChange={(e) => setActivityData({ ...activityData, date: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                      <select
-                        value={activityData.category}
-                        onChange={(e) => setActivityData({ ...activityData, category: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      >
-                        <option value="prayer">Prayer</option>
-                        <option value="meal">Meal</option>
-                        <option value="habit">Habit</option>
-                        <option value="exercise">Exercise</option>
-                        <option value="productivity">Productivity</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Activity Type</label>
-                    <input
-                      type="text"
-                      value={activityData.activity_type_name}
-                      onChange={(e) => setActivityData({ ...activityData, activity_type_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="e.g., Reading, Running"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Note</label>
-                    <textarea
-                      value={activityData.note}
-                      onChange={(e) => setActivityData({ ...activityData, note: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      rows="3"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={createActivity.isPending}
-                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                  >
-                    {createActivity.isPending ? 'Adding...' : 'Add Activity'}
-                  </button>
-                </form>
+                <ActivityFormEngine
+                  onSubmit={handleActivitySubmit}
+                  isLoading={createActivity.isPending}
+                />
               </TabPanel>
 
               {/* Daylog Tab */}
               <TabPanel className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleDaylogSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
                     <input
@@ -233,6 +178,17 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Manual Sleep Time (optional)</label>
+                    <input
+                      type="time"
+                      value={daylogData.manual_sleep_time}
+                      onChange={(e) => setDaylogData({ ...daylogData, manual_sleep_time: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Auto-calculated from bed time if left blank"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">If left blank, will be automatically set to bed time + 15 minutes</p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
                     <textarea
                       value={daylogData.notes}
@@ -253,30 +209,7 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
 
               {/* Goal Tab */}
               <TabPanel className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={goalData.date}
-                        onChange={(e) => setGoalData({ ...goalData, date: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                      <select
-                        value={goalData.active_status.toString()}
-                        onChange={(e) => setGoalData({ ...goalData, active_status: e.target.value === 'true' })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
+                <form onSubmit={handleGoalSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
                     <input
@@ -309,60 +242,10 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
 
               {/* Transaction Tab */}
               <TabPanel className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={transactionData.date}
-                        onChange={(e) => setTransactionData({ ...transactionData, date: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                      <select
-                        value={transactionData.category}
-                        onChange={(e) => setTransactionData({ ...transactionData, category: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      >
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={transactionData.amount}
-                      onChange={(e) => setTransactionData({ ...transactionData, amount: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="e.g., 50.00"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Note</label>
-                    <textarea
-                      value={transactionData.note}
-                      onChange={(e) => setTransactionData({ ...transactionData, note: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      rows="3"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={createTransaction.isPending}
-                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                  >
-                    {createTransaction.isPending ? 'Adding...' : 'Add Transaction'}
-                  </button>
-                </form>
+                <TransactionFormEngine
+                  onSubmit={handleTransactionSubmit}
+                  isLoading={createTransaction.isPending}
+                />
               </TabPanel>
             </TabPanels>
           </TabGroup>

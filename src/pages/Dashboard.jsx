@@ -1,75 +1,64 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useDashboardData, useTotalBalance, useCreateActivity } from '../hooks/useApi';
-import { PlusIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { useDashboardData, useTotalBalance, useCreateActivity, useUpdateDaylog, useCreateTransaction } from '../hooks/useApi';
+import { useToast } from '../context/ToastContext';
+import { ClockIcon, ChartBarIcon, PencilIcon } from '@heroicons/react/24/outline';
+import ActivityFormEngine from '../components/ActivityFormEngine';
+import TransactionFormEngine from '../components/TransactionFormEngine';
 
 const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboardData(today);
   const { data: balanceData, isLoading: balanceLoading } = useTotalBalance();
   const createActivity = useCreateActivity();
+  const createTransaction = useCreateTransaction();
+  const updateDaylog = useUpdateDaylog();
+  const { error: toastError } = useToast();
 
-  // Quick activity form state
-  const [quickActivity, setQuickActivity] = useState({
-    activity_type_name: '',
-    category: 'habit',
+  // Quick entry tab state
+  const [quickEntryTab, setQuickEntryTab] = useState('activity');
+
+  // Daylog inline editing state
+  const [editingDaylog, setEditingDaylog] = useState(false);
+  const [daylogForm, setDaylogForm] = useState({
+    bed_time: '',
+    wake_time: '',
   });
 
-  const handleQuickSubmit = (e) => {
-    e.preventDefault();
-    createActivity.mutate({
-      date: today,
-      ...quickActivity,
-    }, {
-      onSuccess: () => {
-        setQuickActivity({ activity_type_name: '', category: 'habit' });
-      },
-    });
+  // Handle errors silently with toast notification
+  useEffect(() => {
+    if (dashboardError) {
+      toastError('Failed to load dashboard data. Using cached values.');
+    }
+  }, [dashboardError, toastError]);
+
+  // Initialize daylog form when data loads
+  useEffect(() => {
+    if (dashboardData?.daylog) {
+      setDaylogForm({
+        bed_time: dashboardData.daylog.bed_time || '',
+        wake_time: dashboardData.daylog.wake_time || '',
+      });
+    }
+  }, [dashboardData]);
+
+  const handleDaylogSubmit = () => {
+    if (dashboardData?.daylog?.id) {
+      updateDaylog.mutate({
+        id: dashboardData.daylog.id,
+        data: daylogForm,
+      }, {
+        onSuccess: () => {
+          setEditingDaylog(false);
+        },
+      });
+    }
   };
 
+  // Show loading state only during initial load
   if (dashboardLoading || balanceLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-slate-500">Loading dashboard...</div>
-      </div>
-    );
-  }
-
-  if (dashboardError) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-6">
-        <div className="text-center">
-          <div className="bg-red-50 rounded-full p-4 mx-auto w-16 h-16 flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Unable to Load Dashboard</h2>
-          <p className="text-slate-600 max-w-md">
-            {dashboardError.message || 'There was a problem loading your dashboard data. This might be due to a network issue or server maintenance.'}
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            Try Again
-          </button>
-          <Link
-            to="/tracker"
-            className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-center"
-          >
-            Go to Tracker
-          </Link>
-          <Link
-            to="/finance"
-            className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-center"
-          >
-            Go to Finance
-          </Link>
-        </div>
       </div>
     );
   }
@@ -100,21 +89,81 @@ const Dashboard = () => {
               <p className="text-2xl font-bold text-slate-900">${balance.toFixed(2)}</p>
             </div>
             <div className="bg-green-50 p-3 rounded-lg">
-              <PlusIcon className="h-6 w-6 text-green-600" />
+              <ChartBarIcon className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-slate-600">Today's Sleep</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {dashboardData?.sleep_time ? dashboardData.sleep_time : 'N/A'}
-              </p>
+              {editingDaylog ? (
+                <div className="mt-2 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Bed Time</label>
+                      <input
+                        type="time"
+                        value={daylogForm.bed_time}
+                        onChange={(e) => setDaylogForm({ ...daylogForm, bed_time: e.target.value })}
+                        className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Wake Time</label>
+                      <input
+                        type="time"
+                        value={daylogForm.wake_time}
+                        onChange={(e) => setDaylogForm({ ...daylogForm, wake_time: e.target.value })}
+                        className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDaylogSubmit}
+                      disabled={updateDaylog.isPending}
+                      className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {updateDaylog.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingDaylog(false)}
+                      className="px-3 py-1 bg-slate-200 text-slate-700 rounded text-sm hover:bg-slate-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {dashboardData?.sleep_time ? dashboardData.sleep_time : 'N/A'}
+                  </p>
+                  {!dashboardData?.sleep_time && (
+                    <button
+                      onClick={() => setEditingDaylog(true)}
+                      className="mt-1 text-sm text-indigo-600 hover:text-indigo-700"
+                    >
+                      Add sleep data
+                    </button>
+                  )}
+                </>
+              )}
             </div>
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <ClockIcon className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center gap-2">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <ClockIcon className="h-6 w-6 text-blue-600" />
+              </div>
+              {!editingDaylog && (
+                <button
+                  onClick={() => setEditingDaylog(true)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -134,37 +183,61 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Activity Entry */}
+      {/* Quick Entry */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Activity Log</h2>
-        <form onSubmit={handleQuickSubmit} className="flex gap-4">
-          <input
-            type="text"
-            value={quickActivity.activity_type_name}
-            onChange={(e) => setQuickActivity({ ...quickActivity, activity_type_name: e.target.value })}
-            placeholder="Activity name (e.g., Reading, Running)"
-            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            required
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Quick Entry</h2>
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setQuickEntryTab('activity')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                quickEntryTab === 'activity'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Activity
+            </button>
+            <button
+              onClick={() => setQuickEntryTab('transaction')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                quickEntryTab === 'transaction'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Transaction
+            </button>
+          </div>
+        </div>
+        
+        {quickEntryTab === 'activity' && (
+          <ActivityFormEngine
+            onSubmit={(data) => {
+              createActivity.mutate(data, {
+                onSuccess: () => {
+                  setQuickEntryTab('activity');
+                },
+              });
+            }}
+            initialData={{ date: today }}
+            isLoading={createActivity.isPending}
           />
-          <select
-            value={quickActivity.category}
-            onChange={(e) => setQuickActivity({ ...quickActivity, category: e.target.value })}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="prayer">Prayer</option>
-            <option value="meal">Meal</option>
-            <option value="habit">Habit</option>
-            <option value="exercise">Exercise</option>
-            <option value="productivity">Productivity</option>
-          </select>
-          <button
-            type="submit"
-            disabled={createActivity.isPending}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            {createActivity.isPending ? 'Adding...' : 'Add'}
-          </button>
-        </form>
+        )}
+        
+        {quickEntryTab === 'transaction' && (
+          <TransactionFormEngine
+            onSubmit={(data) => {
+              createTransaction.mutate(data, {
+                onSuccess: () => {
+                  setQuickEntryTab('transaction');
+                },
+              });
+            }}
+            initialData={{ date: today }}
+            isLoading={createTransaction.isPending}
+          />
+        )}
       </div>
 
       {/* Today's Activities */}
