@@ -574,7 +574,7 @@ const Finance = () => {
 
       {/* Edit Drawer */}
       <Dialog open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} className="relative z-50">
-        <div className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 bg-black/30"></div>
         <div className="fixed inset-0 flex items-center justify-end">
           <DialogPanel className="w-full max-w-md bg-white h-full shadow-xl p-4 sm:p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -646,7 +646,6 @@ const Finance = () => {
               </div>
             )}
           </DialogPanel>
-        </div>
         </div>
       </Dialog>
     </>
