@@ -180,14 +180,14 @@ const Finance = () => {
   // Use transactions directly - no additional filtering needed for custom range
   const processedFinanceData = transactionsArray;
   
-  // Recalculate income/expense based on filtered data
-  const monthlyIncome = (processedFinanceData || [])
-    .filter(t => t && t.category === 'income')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  // Recalculate income/expense based on filtered data - only if data is loaded
+  const monthlyIncome = (!sourceLoading && processedFinanceData) 
+    ? processedFinanceData.filter(t => t && t.category === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0)
+    : 0;
   
-  const monthlyExpense = (processedFinanceData || [])
-    .filter(t => t && t.category === 'expense')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  const monthlyExpense = (!sourceLoading && processedFinanceData)
+    ? processedFinanceData.filter(t => t && t.category === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0)
+    : 0;
 
   const handleEditClick = (transaction) => {
     setTransactionForm({
@@ -223,25 +223,29 @@ const Finance = () => {
 
   const balance = balanceData?.total_balance || 0;
 
-  // Group transactions by date for feed view
-  const groupedTransactions = processedFinanceData?.reduce((groups, transaction) => {
-    const date = transaction.date || transaction.created_at;
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(transaction);
-    return groups;
-  }, {}) || {};
+  // Group transactions by date for feed view - only if data is loaded
+  const groupedTransactions = (!sourceLoading && processedFinanceData)
+    ? processedFinanceData.reduce((groups, transaction) => {
+        const date = transaction.date || transaction.created_at;
+        if (!groups[date]) {
+          groups[date] = [];
+        }
+        groups[date].push(transaction);
+        return groups;
+      }, {})
+    : {};
 
-  // Calculate daily net balance for calendar view
+  // Calculate daily net balance for calendar view - only if data is loaded
   const calculateDailyNetBalance = (date) => {
-    const dayTransactions = processedFinanceData?.filter(t => (t.date || t.created_at) === date) || [];
+    if (!processedFinanceData) return 0;
+    const dayTransactions = processedFinanceData.filter(t => (t.date || t.created_at) === date) || [];
     const income = dayTransactions.filter(t => t.category === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const expense = dayTransactions.filter(t => t.category === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
     return income - expense;
   };
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -302,7 +306,7 @@ const Finance = () => {
               Search
             </button>
           </div>
-        </div>
+          </div>
 
         {/* View Toggles */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
@@ -324,19 +328,19 @@ const Finance = () => {
             );
           })}
         </div>
+        </div>
       </div>
 
-        {/* Date Range Display */}
-        <div className="mt-3 text-sm text-slate-500">
-          {currentDateRange ? (
-            <span className="text-indigo-600 font-medium">
-              {currentDateRange === 'all' ? 'All data' : 
-               currentDateRange === 'custom' ? `Custom range: ${start} to ${end}` : `${start} to ${end}`}
-            </span>
-          ) : (
-            <span>No date range selected</span>
-          )}
-        </div>
+      {/* Date Range Display */}
+      <div className="mt-3 text-sm text-slate-500">
+        {currentDateRange ? (
+          <span className="text-indigo-600 font-medium">
+            {currentDateRange === 'all' ? 'All data' : 
+             currentDateRange === 'custom' ? `Custom range: ${start} to ${end}` : `${start} to ${end}`}
+          </span>
+        ) : (
+          <span>No date range selected</span>
+        )}
       </div>
 
       {/* Loading State - Skeletons only in data container when fetching */}
@@ -542,19 +546,23 @@ const Finance = () => {
               <div className="text-center text-slate-500">
                 <p>Calendar view implementation pending - showing basic transaction list</p>
                 <div className="mt-4 space-y-2">
-                  {processedFinanceData?.slice(0, 5).map((transaction, index) => {
-                    const tx = Array.isArray(transaction) ? transaction[0] : transaction;
-                    if (!tx) return null;
-                    const netBalance = calculateDailyNetBalance(tx.date || tx.created_at);
-                    return (
-                      <div key={index} className={`p-3 rounded-lg border ${netBalance >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                        <p className="text-sm font-medium">{tx.date || tx.created_at}</p>
-                        <p className={`text-sm ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          Net: ₨ {netBalance.toFixed(2)}
-                        </p>
-                      </div>
-                    );
-                  })}
+                  {processedFinanceData && processedFinanceData.length > 0 ? (
+                    processedFinanceData.slice(0, 5).map((transaction, index) => {
+                      const tx = Array.isArray(transaction) ? transaction[0] : transaction;
+                      if (!tx) return null;
+                      const netBalance = calculateDailyNetBalance(tx.date || tx.created_at);
+                      return (
+                        <div key={index} className={`p-3 rounded-lg border ${netBalance >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                          <p className="text-sm font-medium">{tx.date || tx.created_at}</p>
+                          <p className={`text-sm ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            Net: ₨ {netBalance.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-400">No transactions to display</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -562,6 +570,7 @@ const Finance = () => {
         )}
         </>
       )}
+    </div>
 
       {/* Edit Drawer */}
       <Dialog open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} className="relative z-50">
@@ -638,8 +647,9 @@ const Finance = () => {
             )}
           </DialogPanel>
         </div>
+        </div>
       </Dialog>
-    </div>
+    </>
   );
 };
 
