@@ -1,7 +1,7 @@
 import { TrackerProvider, useTracker } from '../context/TrackerContext';
 import { useTrackerData, useUpdateDaylog } from '../hooks/useApi';
 import { CalendarIcon, TableCellsIcon, QueueListIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { EmptyDateRangeState } from '../components/EmptyState';
 
@@ -182,6 +182,69 @@ const TrackerContent = () => {
     wake_time: '',
   });
   const updateDaylog = useUpdateDaylog();
+
+  // Update custom date inputs based on selection
+  useEffect(() => {
+    if (currentDateRange === 'all' && trackerData?.start_date && trackerData?.end_date) {
+      setCustomStartDate(trackerData.start_date);
+      setCustomEndDate(trackerData.end_date);
+    } else if (currentDateRange && currentDateRange !== 'all' && currentDateRange !== 'custom') {
+      const today = new Date();
+      const start = new Date();
+      const end = new Date();
+      let clientStart, clientEnd;
+
+      switch (currentDateRange) {
+        case 'today':
+          clientStart = today.toISOString().split('T')[0];
+          clientEnd = today.toISOString().split('T')[0];
+          break;
+        case 'this_week':
+          start.setDate(today.getDate() - today.getDay());
+          end.setDate(today.getDate() + (6 - today.getDay()));
+          clientStart = start.toISOString().split('T')[0];
+          clientEnd = end.toISOString().split('T')[0];
+          break;
+        case 'this_month':
+          start.setDate(1);
+          end.setMonth(today.getMonth() + 1);
+          end.setDate(0);
+          clientStart = start.toISOString().split('T')[0];
+          clientEnd = end.toISOString().split('T')[0];
+          break;
+        case 'this_year':
+          start.setMonth(0);
+          start.setDate(1);
+          end.setMonth(11);
+          end.setDate(31);
+          clientStart = start.toISOString().split('T')[0];
+          clientEnd = end.toISOString().split('T')[0];
+          break;
+        case 'last_month':
+          start.setMonth(today.getMonth() - 1);
+          start.setDate(1);
+          end.setMonth(today.getMonth());
+          end.setDate(0);
+          clientStart = start.toISOString().split('T')[0];
+          clientEnd = end.toISOString().split('T')[0];
+          break;
+        case 'last_7_days':
+          start.setDate(today.getDate() - 7);
+          clientStart = start.toISOString().split('T')[0];
+          clientEnd = today.toISOString().split('T')[0];
+          break;
+        default:
+          clientStart = today.toISOString().split('T')[0];
+          clientEnd = today.toISOString().split('T')[0];
+      }
+
+      if (clientStart && clientEnd) {
+        setCustomStartDate(clientStart);
+        setCustomEndDate(clientEnd);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDateRange, trackerData?.start_date, trackerData?.end_date]);
 
   // Handle errors silently
   if (error && currentDateRange) {
