@@ -1,9 +1,10 @@
 import { TrackerProvider, useTracker } from '../context/TrackerContext';
 import { useTrackerData, useUpdateDaylog } from '../hooks/useApi';
-import { CalendarIcon, TableCellsIcon, QueueListIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, TableCellsIcon, QueueListIcon, PencilIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { EmptyDateRangeState } from '../components/EmptyState';
+import BoardView from '../components/BoardView';
 
 // Move dateRangeOptions outside component to avoid recreation on renders
 const dateRangeOptions = [
@@ -21,6 +22,7 @@ const viewOptions = [
   { value: 'feed', label: 'Feed', icon: QueueListIcon },
   { value: 'table', label: 'Table', icon: TableCellsIcon },
   { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
+  { value: 'board', label: 'Board', icon: ViewColumnsIcon },
 ];
 
 // Inline Skeleton Components
@@ -76,6 +78,31 @@ const SkeletonCalendar = () => (
     <div className="grid grid-cols-7 gap-2">
       {Array.from({ length: 35 }).map((_, index) => (
         <div key={index} className="aspect-square bg-slate-200 rounded-lg"></div>
+      ))}
+    </div>
+  </div>
+);
+
+const SkeletonBoard = () => (
+  <div className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
+    <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+    <div className="flex gap-4 overflow-x-auto">
+      {Array.from({ length: 3 }).map((_, colIndex) => (
+        <div key={colIndex} className="flex-shrink-0 min-w-[280px] sm:min-w-[300px] md:min-w-[320px]">
+          <div className="bg-slate-100 rounded-t-lg px-4 py-3 border border-slate-200 border-b-0 mb-2">
+            <div className="h-4 bg-slate-200 rounded w-3/4 mb-1"></div>
+            <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, cardIndex) => (
+              <div key={cardIndex} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <div className="h-3 bg-slate-200 rounded w-16 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-3/4 mb-1"></div>
+                <div className="h-3 bg-slate-200 rounded w-full"></div>
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   </div>
@@ -411,6 +438,7 @@ const TrackerContent = () => {
           )}
           {activeView === 'table' && <SkeletonTable />}
           {activeView === 'calendar' && <SkeletonCalendar />}
+          {activeView === 'board' && <SkeletonBoard />}
         </div>
       )}
 
@@ -553,6 +581,10 @@ const TrackerContent = () => {
                 />
               </div>
             </div>
+          )}
+
+          {activeView === 'board' && (
+            <BoardView activities={activities} />
           )}
 
         </>
