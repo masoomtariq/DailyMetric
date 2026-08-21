@@ -12,24 +12,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
-      retry: (failureCount, error) => {
-        // Don't retry on 4xx errors (client errors)
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
-          return false;
-        }
-        // Retry 3 times for network errors and 5xx errors
-        return failureCount < 3;
-      },
+      retry: false,
     },
     mutations: {
-      retry: (failureCount, error) => {
-        // Don't retry on 4xx errors (client errors)
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
-          return false;
-        }
-        // Retry more aggressively for mutations (important for offline sync)
-        return failureCount < 5;
-      },
+      retry: false,
     },
   },
 })

@@ -4,6 +4,11 @@ import { useToast } from '../context/ToastContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space';
 
+export const getApiErrorMessage = (error) => {
+  const status = error?.status || error?.response?.status;
+  return status ? `API request failed (${status})` : 'API request failed (network error)';
+};
+
 // Generic fetch wrapper
 const fetchWithAuth = async (endpoint, token, options = {}) => {
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -16,7 +21,9 @@ const fetchWithAuth = async (endpoint, token, options = {}) => {
   });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const error = new Error(`API error: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -197,7 +204,7 @@ export const useGoals = () => {
   return useQuery({
     queryKey: ['goals'],
     queryFn: () => fetchWithAuth('/goals/get_goal_titles', token),
-    enabled: !!token,
+    enabled: false,
   });
 };
 

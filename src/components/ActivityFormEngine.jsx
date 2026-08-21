@@ -1,8 +1,22 @@
-import { useState } from 'react';
-import { useGoals } from '../hooks/useApi';
+import { useEffect, useState } from 'react';
+import { getApiErrorMessage, useGoals } from '../hooks/useApi';
+import { useToast } from '../context/ToastContext';
 
 const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) => {
-  const { data: goalsData, isLoading: goalsLoading, error: goalsError } = useGoals();
+  const { data: goalsData, isFetching: goalsLoading, error: goalsError, refetch: refetchGoals } = useGoals();
+  const { error: toastError } = useToast();
+
+  useEffect(() => {
+    if (goalsError) {
+      toastError(getApiErrorMessage(goalsError));
+    }
+  }, [goalsError]);
+
+  const loadGoals = () => {
+    if (!goalsLoading && !goalsData) {
+      refetchGoals();
+    }
+  };
   
   // Handle goals data defensively - it might be an object with different structure
   let goals = [];
@@ -364,6 +378,7 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                 <select
                   value={formData.meal_goal_name}
                   onChange={(e) => handleChange('meal_goal_name', e.target.value)}
+                  onFocus={loadGoals}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={goalsLoading}
                 >
@@ -453,6 +468,7 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
                 <select
                   value={formData.habit_goal_name}
                   onChange={(e) => handleChange('habit_goal_name', e.target.value)}
+                  onFocus={loadGoals}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={goalsLoading}
                 >
@@ -486,6 +502,7 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
               <select
                 value={formData.exercise_goal_name}
                 onChange={(e) => handleChange('exercise_goal_name', e.target.value)}
+                onFocus={loadGoals}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={goalsLoading}
               >
@@ -559,6 +576,7 @@ const ActivityFormEngine = ({ onSubmit, initialData = {}, isLoading = false }) =
               <select
                 value={formData.productivity_goal_name}
                 onChange={(e) => handleChange('productivity_goal_name', e.target.value)}
+                onFocus={loadGoals}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={goalsLoading}
               >

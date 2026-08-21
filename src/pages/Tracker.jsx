@@ -1,5 +1,6 @@
 import { TrackerProvider, useTracker } from '../context/TrackerContext';
-import { useTrackerData, useUpdateDaylog } from '../hooks/useApi';
+import { getApiErrorMessage, useTrackerData, useUpdateDaylog } from '../hooks/useApi';
+import { useToast } from '../context/ToastContext';
 import { CalendarIcon, TableCellsIcon, QueueListIcon, PencilIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
@@ -200,6 +201,7 @@ const TrackerContent = () => {
   const { start, end } = getDateRange();
   // Only fetch data if both start and end dates are available
   const { data: trackerData, isLoading, error } = useTrackerData(start, end, refreshKey);
+  const { error: toastError } = useToast();
   const [selectedDay, setSelectedDay] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingDaylogDate, setEditingDaylogDate] = useState(null);
@@ -273,10 +275,11 @@ const TrackerContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDateRange, trackerData?.start_date, trackerData?.end_date]);
 
-  // Handle errors silently
-  if (error && currentDateRange) {
-    console.error('Error loading tracker data:', error);
-  }
+  useEffect(() => {
+    if (error && currentDateRange) {
+      toastError(getApiErrorMessage(error));
+    }
+  }, [error, currentDateRange]);
 
   // Initialize daylog form when editing
   const handleEditDaylog = (date) => {

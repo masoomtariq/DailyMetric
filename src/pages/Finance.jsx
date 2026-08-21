@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useTotalBalance, useFinanceDataByDateRange, useUpdateTransaction } from '../hooks/useApi';
+import { getApiErrorMessage, useTotalBalance, useFinanceDataByDateRange, useUpdateTransaction } from '../hooks/useApi';
+import { useToast } from '../context/ToastContext';
 import { CurrencyDollarIcon, ArrowUpIcon, ArrowDownIcon, PencilIcon, CalendarIcon, TableCellsIcon, QueueListIcon } from '@heroicons/react/24/outline';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { EmptyTransactionState } from '../components/EmptyState';
@@ -132,12 +133,13 @@ const Finance = () => {
 
   const { start, end } = getDateRange();
 
-  const { data: balanceData } = useTotalBalance();
+  const { data: balanceData, error: balanceError } = useTotalBalance();
   const { data: financeData, isLoading: financeLoading, error: financeError } = useFinanceDataByDateRange(
     start,
     end,
     refreshKey
   );
+  const { error: toastError } = useToast();
 
   // Update custom date inputs based on selection
   useEffect(() => {
@@ -202,10 +204,17 @@ const Finance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDateRange, financeData?.start_date, financeData?.end_date]);
 
-  // Handle errors silently
-  if (financeError) {
-    console.error('Error loading finance data:', financeError);
-  }
+  useEffect(() => {
+    if (financeError) {
+      toastError(getApiErrorMessage(financeError));
+    }
+  }, [financeError]);
+
+  useEffect(() => {
+    if (balanceError) {
+      toastError(getApiErrorMessage(balanceError));
+    }
+  }, [balanceError]);
 
   // Use the data from the date range query
   const sourceData = financeData;

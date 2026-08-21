@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDashboardData, useDaylogByDate, useUpdateDaylog } from '../hooks/useApi';
+import { useDashboardData, useUpdateDaylog } from '../hooks/useApi';
 
 const dateKey = (date) => date.toISOString().split('T')[0];
 
@@ -19,19 +19,17 @@ const formatTime = (time) => {
 
 const getValue = (source, ...keys) => keys.reduce((value, key) => value || source?.[key], '');
 
-export const normalizeDashboardDaylog = (dashboardData, yesterdayDaylog, todayDaylog) => ({
+export const normalizeDashboardDaylog = (dashboardData) => ({
   duration: dashboardData?.sleep_duration ?? null,
-  yesterdayBed: getValue(dashboardData, 'yesterday_bed_time') || yesterdayDaylog?.bed_time || '',
-  todayWake: getValue(dashboardData, 'wake_time') || todayDaylog?.wake_time || '',
-  todayBed: getValue(dashboardData, 'bed_time') || todayDaylog?.bed_time || '',
-  note: getValue(dashboardData, 'note', 'notes') || getValue(todayDaylog, 'note', 'notes'),
+  yesterdayBed: getValue(dashboardData, 'yesterday_bed_time'),
+  todayWake: getValue(dashboardData, 'wake_time'),
+  todayBed: getValue(dashboardData, 'bed_time'),
+  note: getValue(dashboardData, 'note', 'notes'),
 });
 
 export const useDashboardDaylog = () => {
   const { today, yesterday } = getDashboardDateKeys();
   const dashboardQuery = useDashboardData(today);
-  const yesterdayQuery = useDaylogByDate(yesterday);
-  const todayQuery = useDaylogByDate(today);
   const updateDaylog = useUpdateDaylog();
   const queryClient = useQueryClient();
   const [sleepOpen, setSleepOpen] = useState(false);
@@ -43,11 +41,7 @@ export const useDashboardDaylog = () => {
   const [sleepError, setSleepError] = useState('');
   const [noteError, setNoteError] = useState('');
 
-  const daylog = normalizeDashboardDaylog(
-    dashboardQuery.data,
-    yesterdayQuery.data,
-    todayQuery.data,
-  );
+  const daylog = normalizeDashboardDaylog(dashboardQuery.data);
 
   useEffect(() => {
     setSleepForm({
@@ -59,11 +53,7 @@ export const useDashboardDaylog = () => {
   }, [daylog.yesterdayBed, daylog.todayWake, daylog.todayBed, daylog.note]);
 
   const refresh = async () => {
-    await Promise.all([
-      queryClient.refetchQueries({ queryKey: ['dashboard', today], type: 'active' }),
-      queryClient.refetchQueries({ queryKey: ['daylog', today], type: 'active' }),
-      queryClient.refetchQueries({ queryKey: ['daylog', yesterday], type: 'active' }),
-    ]);
+    await queryClient.refetchQueries({ queryKey: ['dashboard', today], type: 'active' });
   };
 
   const update = (date, data) => updateDaylog.mutateAsync({

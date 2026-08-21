@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useTotalBalance, useCreateActivity, useCreateTransaction } from '../hooks/useApi';
+import { getApiErrorMessage, useTotalBalance, useCreateActivity, useCreateTransaction } from '../hooks/useApi';
 import { useToast } from '../context/ToastContext';
 import { ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import ActivityFormEngine from '../components/ActivityFormEngine';
 import TransactionFormEngine from '../components/TransactionFormEngine';
 import { TodayLogSection } from '../components/TodayLogSection';
 import { useDashboardDaylog } from '../domain/dashboardDaylog';
+import { SkeletonCard, SkeletonMetricCard } from '../components/Skeleton';
 
 const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const daylogDomain = useDashboardDaylog();
   const { dashboardData, dashboardLoading, dashboardError } = daylogDomain;
-  const { data: balanceData, isLoading: balanceLoading } = useTotalBalance();
+  const { data: balanceData, isLoading: balanceLoading, error: balanceError } = useTotalBalance();
   const createActivity = useCreateActivity();
   const createTransaction = useCreateTransaction();
   const { error: toastError } = useToast();
@@ -19,22 +20,17 @@ const Dashboard = () => {
   // Quick entry tab state
   const [quickEntryTab, setQuickEntryTab] = useState('activity');
 
-  // Handle errors silently with toast notification
   useEffect(() => {
     if (dashboardError) {
-      toastError('Failed to load dashboard data. Using cached values.');
+      toastError(getApiErrorMessage(dashboardError));
     }
-  }, [dashboardError, toastError]);
+  }, [dashboardError]);
 
-
-  // Show loading state only during initial load
-  if (dashboardLoading || balanceLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-slate-500">Loading dashboard...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (balanceError) {
+      toastError(getApiErrorMessage(balanceError));
+    }
+  }, [balanceError]);
 
   const activities = dashboardData?.activities || [];
   const transactions = dashboardData?.transactions || [];
@@ -58,7 +54,7 @@ const Dashboard = () => {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        {balanceLoading ? <SkeletonMetricCard /> : <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Total Balance</p>
@@ -68,9 +64,9 @@ const Dashboard = () => {
               <ChartBarIcon className="h-6 w-6 text-green-600" />
             </div>
           </div>
-        </div>
+        </div>}
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        {dashboardLoading ? <SkeletonMetricCard /> : <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Today's Sleep</p>
@@ -85,9 +81,9 @@ const Dashboard = () => {
               <ClockIcon className="h-6 w-6 text-blue-600" />
             </div>
           </div>
-        </div>
+        </div>}
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        {dashboardLoading ? <SkeletonMetricCard /> : <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Productivity Score</p>
@@ -99,10 +95,10 @@ const Dashboard = () => {
               <ChartBarIcon className="h-6 w-6 text-purple-600" />
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
-      <TodayLogSection domain={daylogDomain} />
+      {dashboardLoading ? <SkeletonCard /> : <TodayLogSection domain={daylogDomain} />}
 
       {/* Quick Entry */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
@@ -161,6 +157,7 @@ const Dashboard = () => {
         )}
       </div>
 
+      {dashboardLoading ? <SkeletonCard /> : <>
       {/* Today's Activities */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="p-6 border-b border-slate-200">
@@ -232,6 +229,7 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 };
