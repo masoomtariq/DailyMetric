@@ -10,7 +10,7 @@ import { useDashboardDaylog } from '../domain/dashboardDaylog';
 const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const daylogDomain = useDashboardDaylog();
-  const { data: dashboardData, dashboardLoading, dashboardError } = daylogDomain;
+  const { dashboardData, dashboardLoading, dashboardError } = daylogDomain;
   const { data: balanceData, isLoading: balanceLoading } = useTotalBalance();
   const createActivity = useCreateActivity();
   const createTransaction = useCreateTransaction();
