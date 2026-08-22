@@ -1,16 +1,5 @@
 import { ChevronDownIcon, PencilIcon } from '@heroicons/react/24/outline';
-
-const formatTimeToAMPM = (timeString) => {
-  if (!timeString) return 'Not set';
-  const [hours, minutes] = timeString.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date);
-};
+import { formatTimeToAMPM, formatTimeForDisplay } from '../utils/timeUtils';
 
 const AccordionHeader = ({ title, summary, open, onClick }) => (
   <button
@@ -32,7 +21,7 @@ const Field = ({ label, value, onChange }) => (
     <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">{label}</span>
     <input
       type="time"
-      value={value ? value.split(':').slice(0, 2).join(':') : ''}
+      value={formatTimeForDisplay(value)}
       onChange={(event) => onChange(event.target.value)}
       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
     />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { formatTimeWithSeconds } from '../utils/timeUtils';
 import { 
   faSquarePollVertical, faUser, faRightFromBracket, faFileCirclePlus, 
   faBullseye, faCalendarCheck, faPersonRunning, faPaperPlane, faPenToSquare, faCircleInfo,
@@ -215,7 +216,7 @@ const resetToCreateMode = () => {
 
   // --- Helper Functions for Time Math ---
   const addMinutesToTime = (timeStr, minsToAdd) => {
-    if (!timeStr) return '';
+    if (!timeStr || timeStr.trim() === '') return '';
     const [hours, minutes] = timeStr.split(':').map(Number);
     const date = new Date(2000, 0, 1, hours, minutes + minsToAdd);
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -244,9 +245,9 @@ const resetToCreateMode = () => {
 
   // Call the function immediately
   fetchBalance();
-  
+
   // Empty dependency array ensures this runs ONLY once on mount/reload
-}, []); 
+}, []);
 
   // 1. Auto-calculate Sleep Time when Bed Time changes
   useEffect(() => {
@@ -256,12 +257,6 @@ const resetToCreateMode = () => {
       setDaylogSleep(''); // Clear if user erases bed time
     }
   }, [daylogBed]);
-
-  const formatTimeWithSeconds = (timeStr) => {
-    if (!timeStr) return null;
-    if (timeStr.split(':').length === 2) return timeStr + ':00';
-    return timeStr;
-  };
 
   const logToConsole = (message, data = null, status = 'info') => {
     let messageFormatted = `[${new Date().toLocaleTimeString()}] ${message}\n`;
@@ -424,8 +419,8 @@ const resetToCreateMode = () => {
           active_status: goalStatus
         };
       } else if (entityType === 'daylog') {
-        endpoint = isEditMode 
-        ? `${apiBase}/daylogs/update_daylog/by_id/${editId}` 
+        endpoint = isEditMode
+        ? `${apiBase}/daylogs/update_daylog/by_id/${editId}`
         : `${apiBase}/daylogs/add_daylog`;
         const durationVal = daylogDuration;
         const prodVal = daylogProd;
@@ -433,9 +428,9 @@ const resetToCreateMode = () => {
 
         payload = {
           date: daylogDate,
-          bed_time: formatTimeWithSeconds(daylogBed || null),
-          wake_time: formatTimeWithSeconds(daylogWake || null),
-          sleep_time: formatTimeWithSeconds(daylogSleep || null),
+          bed_time: formatTimeWithSeconds(daylogBed),
+          wake_time: formatTimeWithSeconds(daylogWake),
+          sleep_time: formatTimeWithSeconds(daylogSleep),
           sleep_duration_hours: durationVal !== '' ? parseFloat(durationVal) : null,
           total_productivity_min: prodVal !== '' ? parseInt(prodVal, 10) : null,
           total_calories: calVal !== '' ? parseInt(calVal, 10) : null,

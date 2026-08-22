@@ -3,6 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useCreateActivity, useCreateDaylog, useCreateGoal, useCreateTransaction } from '../hooks/useApi';
 import { useConfetti } from '../hooks/useConfetti';
+import { formatTimeWithSeconds } from '../utils/timeUtils';
 import ActivityFormEngine from './ActivityFormEngine';
 import TransactionFormEngine from './TransactionFormEngine';
 
@@ -32,16 +33,24 @@ const GlobalEntryModal = ({ isOpen, onClose }) => {
 
   const handleDaylogSubmit = (e) => {
     e.preventDefault();
-    
+
     // onSubmit interceptor: if sleep_time is blank, calculate from bed_time + 15 minutes
     let submitData = { ...daylogData };
-    if (!submitData.sleep_time && submitData.bed_time) {
+    if (!submitData.sleep_time && submitData.bed_time && submitData.bed_time.trim() !== '') {
       const [hours, minutes] = submitData.bed_time.split(':');
       const bedTimeDate = new Date();
       bedTimeDate.setHours(parseInt(hours), parseInt(minutes) + 15);
       const calculatedTime = bedTimeDate.toTimeString().slice(0, 5);
       submitData.sleep_time = calculatedTime;
     }
+
+    // Format time fields to include seconds and handle empty strings
+    submitData = {
+      ...submitData,
+      bed_time: formatTimeWithSeconds(submitData.bed_time),
+      wake_time: formatTimeWithSeconds(submitData.wake_time),
+      sleep_time: formatTimeWithSeconds(submitData.sleep_time),
+    };
 
     createDaylog.mutate(submitData, {
       onSuccess: () => {

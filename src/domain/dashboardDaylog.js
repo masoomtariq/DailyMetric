@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDashboardData, useUpdateDaylog } from '../hooks/useApi';
+import { formatTimeWithSeconds } from '../utils/timeUtils';
 
 const dateKey = (date) => date.toISOString().split('T')[0];
 
@@ -13,18 +14,17 @@ export const getDashboardDateKeys = (date = new Date()) => {
 };
 
 const formatTime = (time) => {
-  if (!time) return '';
-  return time.split(':').length === 2 ? `${time}:00` : time;
+  return formatTimeWithSeconds(time) || '';
 };
 
 const getValue = (source, ...keys) => keys.reduce((value, key) => value || source?.[key], '');
 
 export const normalizeDashboardDaylog = (dashboardData) => ({
   duration: dashboardData?.sleep_duration ?? null,
-  yesterdayBed: getValue(dashboardData, 'yesterday_bed_time'),
-  todayWake: getValue(dashboardData, 'wake_time'),
-  todayBed: getValue(dashboardData, 'bed_time'),
-  note: getValue(dashboardData, 'note', 'notes'),
+  yesterdayBed: getValue(dashboardData, 'yesterday_bed_time') || '',
+  todayWake: getValue(dashboardData, 'wake_time') || '',
+  todayBed: getValue(dashboardData, 'bed_time') || '',
+  note: getValue(dashboardData, 'note', 'notes') || '',
 });
 
 export const useDashboardDaylog = () => {
@@ -65,9 +65,9 @@ export const useDashboardDaylog = () => {
   const saveSleep = async () => {
     setSleepError('');
     try {
-      await update(yesterday, { bed_time: formatTime(sleepForm.yesterdayBed) || null });
-      await update(today, { wake_time: formatTime(sleepForm.todayWake) || null });
-      await update(today, { bed_time: formatTime(sleepForm.todayBed) || null });
+      await update(yesterday, { bed_time: formatTimeWithSeconds(sleepForm.yesterdayBed) });
+      await update(today, { wake_time: formatTimeWithSeconds(sleepForm.todayWake) });
+      await update(today, { bed_time: formatTimeWithSeconds(sleepForm.todayBed) });
       await refresh();
       setSleepMode('view');
     } catch {

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { EmptyDateRangeState } from '../components/EmptyState';
 import BoardView from '../components/BoardView';
+import { formatTimeWithSeconds } from '../utils/timeUtils';
 
 // Move dateRangeOptions outside component to avoid recreation on renders
 const dateRangeOptions = [
@@ -299,8 +300,8 @@ const TrackerContent = () => {
         id: daylog.id,
         data: {
           date: editingDaylogDate,
-          bed_time: daylogForm.bed_time,
-          wake_time: daylogForm.wake_time,
+          bed_time: formatTimeWithSeconds(daylogForm.bed_time),
+          wake_time: formatTimeWithSeconds(daylogForm.wake_time),
         },
       }, {
         onSuccess: () => {
