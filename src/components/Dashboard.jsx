@@ -30,7 +30,7 @@ const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
 };
 
 const Dashboard = () => {
-  const { token, user, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space');
   const [entityType, setEntityType] = useState('goal');
   const [consoleOutput, setConsoleOutput] = useState('Waiting for submissions...');
@@ -139,7 +139,7 @@ const Dashboard = () => {
 
     const response = await fetch(endpoint, {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
+      credentials: 'include'
     });
 
     if (response.ok) {
@@ -198,7 +198,7 @@ const resetToCreateMode = () => {
   try {
     const response = await fetch(`${apiBase}/goals/get_goal_titles`, {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
+      credentials: 'include'
     });
 
     if (response.ok) {
@@ -229,7 +229,7 @@ const resetToCreateMode = () => {
     try {
       const response = await fetch(`${getApiUrl()}/finance/total_balance`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -530,9 +530,9 @@ const resetToCreateMode = () => {
       const response = await fetch(endpoint, {
         method: httpMethod,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
 
@@ -570,7 +570,7 @@ const resetToCreateMode = () => {
     try {
       const response = await fetch(`${apiBase}/daylogs/get_daylog_dates`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -592,7 +592,7 @@ const resetToCreateMode = () => {
     try {
       const response = await fetch(`${apiBase}/activities/by-date/${date}`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -618,7 +618,7 @@ const resetToCreateMode = () => {
     try {
       const response = await fetch(`${apiBase}/activities/all_activities`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
 
       if (response.ok) {

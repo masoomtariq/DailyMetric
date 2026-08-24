@@ -7,16 +7,22 @@ import Tracker from './pages/Tracker';
 import Finance from './pages/Finance';
 
 const ProtectedRoute = ({ children }) => {
-  const { token } = useAuth();
-  if (!token) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
   return children;
 };
 
 const PublicRoute = ({ children }) => {
-  const { token } = useAuth();
-  if (token) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;

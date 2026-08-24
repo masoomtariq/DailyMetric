@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSquarePollVertical, faShieldHalved, faPhone, faLock, faRightToBracket, faUserPlus, faFloppyDisk } from '@fortawesome/free-solid-svg-icons';
+import { faSquarePollVertical, faShieldHalved, faPhone, faLock, faRightToBracket, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,9 +21,6 @@ const Login = () => {
   const [regTimezone, setRegTimezone] = useState('Asia/Karachi');
   const [regPassword, setRegPassword] = useState('');
   const [regSecret, setRegSecret] = useState('');
-  
-  // Token form state
-  const [manualToken, setManualToken] = useState('');
 
   const getApiUrl = () => {
     return apiUrl.trim() || 'http://127.0.0.1:8000';
@@ -36,22 +33,14 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const apiBase = getApiUrl();
 
     try {
-      const response = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: loginPhone, password: loginPassword })
-      });
-
-      const data = await response.json();
+      const success = await login({ phone_number: loginPhone, password: loginPassword });
       
-      if (response.ok) {
-        login(data.access_token);
+      if (success) {
         navigate('/dashboard');
       } else {
-        logToConsole(`Login failed with status ${response.status}`, data, 'error');
+        logToConsole('Login failed. Please check your credentials.', null, 'error');
       }
     } catch (error) {
       logToConsole("Network connection failure trying to login.", error.toString(), 'error');
@@ -60,10 +49,9 @@ const Login = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const apiBase = getApiUrl();
 
     try {
-      const response = await fetch(`${apiBase}/auth/register`, {
+      const response = await fetch(`${getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,13 +70,6 @@ const Login = () => {
       }
     } catch (error) {
       logToConsole("Network connection failure during user registration.", error.toString(), 'error');
-    }
-  };
-
-  const saveManualToken = () => {
-    if (manualToken.trim()) {
-      login(manualToken.trim());
-      navigate('/dashboard');
     }
   };
 
@@ -154,16 +135,6 @@ const Login = () => {
                   }`}
                 >
                   Register
-                </button>
-                <button 
-                  onClick={() => setActiveTab('token')}
-                  className={`flex-1 py-1.5 text-center font-medium rounded-lg transition-all ${
-                    activeTab === 'token' 
-                      ? 'text-primary-700 bg-white shadow-sm' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Token
                 </button>
               </div>
 
@@ -285,30 +256,6 @@ const Login = () => {
                     <FontAwesomeIcon icon={faUserPlus} /> Register
                   </button>
                 </form>
-              )}
-
-              {activeTab === 'token' && (
-                <div className="space-y-4">
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Directly paste your bearer JWT token here if you have authenticated via external tools.
-                  </p>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Access Token</label>
-                    <textarea 
-                      value={manualToken}
-                      onChange={(e) => setManualToken(e.target.value)}
-                      rows="4" 
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
-                      className="font-mono text-[11px] leading-normal w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 outline-none transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-100"
-                    />
-                  </div>
-                  <button 
-                    onClick={saveManualToken}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition-all duration-150 transform active:scale-95 flex justify-center items-center gap-2"
-                  >
-                    <FontAwesomeIcon icon={faFloppyDisk} /> Apply Token
-                  </button>
-                </div>
               )}
             </div>
           </div>

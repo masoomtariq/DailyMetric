@@ -10,12 +10,12 @@ export const getApiErrorMessage = (error) => {
 };
 
 // Generic fetch wrapper
-const fetchWithAuth = async (endpoint, token, options = {}) => {
+const fetchWithAuth = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
       ...options.headers,
     },
   });
@@ -32,11 +32,10 @@ const fetchWithAuth = async (endpoint, token, options = {}) => {
 // Activity Mutations
 export const useCreateActivity = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: (data) => fetchWithAuth('/activities/add_activity', token, {
+    mutationFn: (data) => fetchWithAuth('/activities/add_activity', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -54,11 +53,10 @@ export const useCreateActivity = () => {
 // Daylog Mutations
 export const useCreateDaylog = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: (data) => fetchWithAuth('/daylogs/add_daylog', token, {
+    mutationFn: (data) => fetchWithAuth('/daylogs/add_daylog', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -75,7 +73,6 @@ export const useCreateDaylog = () => {
 
 export const useUpdateDaylog = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
@@ -83,7 +80,7 @@ export const useUpdateDaylog = () => {
       const endpoint = useDate 
         ? `/daylogs/update_daylog?daylog_date=${id}`
         : `/daylogs/update_daylog?day_log_id=${id}`;
-      return fetchWithAuth(endpoint, token, {
+      return fetchWithAuth(endpoint, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
@@ -104,11 +101,10 @@ export const useUpdateDaylog = () => {
 // Goal Mutations
 export const useCreateGoal = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: (data) => fetchWithAuth('/goals/add_goal', token, {
+    mutationFn: (data) => fetchWithAuth('/goals/add_goal', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -124,11 +120,10 @@ export const useCreateGoal = () => {
 
 export const useUpdateGoal = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => fetchWithAuth(`/goals/update_goal/by_id/${id}`, token, {
+    mutationFn: ({ id, data }) => fetchWithAuth(`/goals/update_goal/by_id/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -145,11 +140,10 @@ export const useUpdateGoal = () => {
 // Transaction Mutations
 export const useCreateTransaction = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: (data) => fetchWithAuth('/finance/transaction', token, {
+    mutationFn: (data) => fetchWithAuth('/finance/transaction', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -166,11 +160,10 @@ export const useCreateTransaction = () => {
 
 export const useUpdateTransaction = () => {
   const queryClient = useQueryClient();
-  const { token } = useAuth();
   const { success, error: toastError } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => fetchWithAuth(`/finance/transaction/${id}`, token, {
+    mutationFn: ({ id, data }) => fetchWithAuth(`/finance/transaction/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -188,100 +181,98 @@ export const useUpdateTransaction = () => {
 
 // Dashboard Query
 export const useDashboardData = (date) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['dashboard', date],
-    queryFn: () => fetchWithAuth(`/analytics/dashboard?date=${date}`, token),
-    enabled: !!token && !!date,
+    queryFn: () => fetchWithAuth(`/analytics/dashboard?date=${date}`),
+    enabled: !!isAuthenticated && !!date,
   });
 };
 
 // Goals Query
 export const useGoals = () => {
-  const { token } = useAuth();
-
   return useQuery({
     queryKey: ['goals'],
-    queryFn: () => fetchWithAuth('/goals/get_goal_titles', token),
+    queryFn: () => fetchWithAuth('/goals/get_goal_titles'),
     enabled: false,
   });
 };
 
 // Activities Query
 export const useActivitiesByDate = (date) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['activities', date],
-    queryFn: () => fetchWithAuth(`/activities/by-date/${date}`, token),
-    enabled: !!token && !!date,
+    queryFn: () => fetchWithAuth(`/activities/by-date/${date}`),
+    enabled: !!isAuthenticated && !!date,
   });
 };
 
 // Finance Query
 export const useFinanceData = (year, month, refreshKey = 0) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['finance', year, month, refreshKey],
-    queryFn: () => fetchWithAuth(`/finance/transaction_history/${year}/${month}`, token),
-    enabled: !!token && !!year && !!month && year !== null && month !== null,
+    queryFn: () => fetchWithAuth(`/finance/transaction_history/${year}/${month}`),
+    enabled: !!isAuthenticated && !!year && !!month && year !== null && month !== null,
   });
 };
 
 // Finance Query with custom date range
 export const useFinanceDataByDateRange = (startDate, endDate, refreshKey = 0) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['finance', 'custom', startDate, endDate, refreshKey],
     queryFn: () => {
       if (startDate === 'all' && endDate === 'all') {
-        return fetchWithAuth('/finance/transaction_history', token);
+        return fetchWithAuth('/finance/transaction_history');
       }
       const params = new URLSearchParams();
       if (startDate && startDate !== 'all') params.append('start_date', startDate);
       if (endDate && endDate !== 'all') params.append('end_date', endDate);
-      return fetchWithAuth(`/finance/transaction_history?${params.toString()}`, token);
+      return fetchWithAuth(`/finance/transaction_history?${params.toString()}`);
     },
-    enabled: !!token && (startDate !== null && endDate !== null),
+    enabled: !!isAuthenticated && (startDate !== null && endDate !== null),
   });
 };
 
 export const useTotalBalance = () => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['totalBalance'],
-    queryFn: () => fetchWithAuth('/finance/total_balance', token),
-    enabled: !!token,
+    queryFn: () => fetchWithAuth('/finance/total_balance'),
+    enabled: !!isAuthenticated,
   });
 };
 
 // Tracker Query
 export const useTrackerData = (startDate, endDate, refreshKey = 0) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['tracker', startDate, endDate, refreshKey],
     queryFn: () => {
       if (startDate === 'all' && endDate === 'all') {
-        return fetchWithAuth('/analytics/tracker', token);
+        return fetchWithAuth('/analytics/tracker');
       }
-      return fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`, token);
+      return fetchWithAuth(`/analytics/tracker?start_date=${startDate}&end_date=${endDate}`);
     },
-    enabled: !!token && (startDate !== null && endDate !== null),
+    enabled: !!isAuthenticated && (startDate !== null && endDate !== null),
   });
 };
 
 // Daylog by Date Query
 export const useDaylogByDate = (date) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['daylog', date],
-    queryFn: () => fetchWithAuth(`/daylogs/by_date/${date}`, token),
-    enabled: !!token && !!date,
+    queryFn: () => fetchWithAuth(`/daylogs/by_date/${date}`),
+    enabled: !!isAuthenticated && !!date,
   });
 };

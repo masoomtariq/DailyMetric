@@ -1,41 +1,74 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space';
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const claims = JSON.parse(jsonPayload);
-        setUser(claims.sub || 'User');
-      } catch (_e) {
-        logout();
-      }
-    }
-  }, [token]);
+    validateSession();
+  }, []);
 
-  const login = (newToken) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
+  const validateSession = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/validate`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user || 'User');
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (_error) {
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken('');
-    setUser(null);
+  const login = async (credentials) => {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(credentials)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setUser(data.user || 'User');
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
