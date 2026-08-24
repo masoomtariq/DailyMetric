@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../api/apiClient';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { formatTimeWithSeconds } from '../utils/timeUtils';
 import { 
@@ -137,10 +138,10 @@ const Dashboard = () => {
       endpoint = `${apiBase}/goals/by_name/${goalName.trim()}`; 
     }
 
-    const response = await fetch(endpoint, {
+    const response = await apiRequest(endpoint, {
       method: 'GET',
       credentials: 'include'
-    });
+    }, { baseUrl: apiBase });
 
     if (response.ok) {
       const resData = await response.json();
@@ -196,10 +197,10 @@ const resetToCreateMode = () => {
 
   const apiBase = getApiUrl();
   try {
-    const response = await fetch(`${apiBase}/goals/get_goal_titles`, {
+    const response = await apiRequest(`${apiBase}/goals/get_goal_titles`, {
       method: 'GET',
       credentials: 'include'
-    });
+    }, { baseUrl: apiBase });
 
     if (response.ok) {
       const resData = await response.json();
@@ -227,10 +228,10 @@ const resetToCreateMode = () => {
   // Define an async function inside the effect
   const fetchBalance = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/finance/total_balance`, {
+      const response = await apiRequest(`${getApiUrl()}/finance/total_balance`, {
         method: 'GET',
         credentials: 'include'
-      });
+      }, { baseUrl: getApiUrl() });
 
       if (response.ok) {
         const resData = await response.json();
@@ -527,14 +528,14 @@ const resetToCreateMode = () => {
 
       logToConsole(`Submitting ${entityType.toUpperCase()} data to: ${endpoint}...`, payload, 'info');
 
-      const response = await fetch(endpoint, {
+      const response = await apiRequest(endpoint, {
         method: httpMethod,
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(payload)
-      });
+      }, { baseUrl: apiBase });
 
       let data;
       try {
@@ -568,10 +569,10 @@ const resetToCreateMode = () => {
     
     const apiBase = getApiUrl();
     try {
-      const response = await fetch(`${apiBase}/daylogs/get_daylog_dates`, {
+      const response = await apiRequest(`${apiBase}/daylogs/get_daylog_dates`, {
         method: 'GET',
         credentials: 'include'
-      });
+      }, { baseUrl: apiBase });
 
       if (response.ok) {
         const resData = await response.json();
@@ -590,10 +591,10 @@ const resetToCreateMode = () => {
     
     const apiBase = getApiUrl();
     try {
-      const response = await fetch(`${apiBase}/activities/by-date/${date}`, {
+      const response = await apiRequest(`${apiBase}/activities/by-date/${date}`, {
         method: 'GET',
         credentials: 'include'
-      });
+      }, { baseUrl: apiBase });
 
       if (response.ok) {
         const resData = await response.json();
@@ -616,10 +617,10 @@ const resetToCreateMode = () => {
     
     const apiBase = getApiUrl();
     try {
-      const response = await fetch(`${apiBase}/activities/all_activities`, {
+      const response = await apiRequest(`${apiBase}/activities/all_activities`, {
         method: 'GET',
         credentials: 'include'
-      });
+      }, { baseUrl: apiBase });
 
       if (response.ok) {
         const resData = await response.json();

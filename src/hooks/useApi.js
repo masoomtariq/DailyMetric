@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { apiJson } from '../api/apiClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space';
 
@@ -11,22 +12,7 @@ export const getApiErrorMessage = (error) => {
 
 // Generic fetch wrapper
 const fetchWithAuth = async (endpoint, options = {}) => {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error(`API error: ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-
-  return response.json();
+  return apiJson(endpoint, options, { baseUrl: API_BASE });
 };
 
 // Activity Mutations
