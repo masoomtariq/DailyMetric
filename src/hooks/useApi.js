@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { apiJson } from '../api/apiClient';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-v1-hkge.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-mfmf.onrender.com';
 
 export const getApiErrorMessage = (error) => {
   const status = error?.status || error?.response?.status;
