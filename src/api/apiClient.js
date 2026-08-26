@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space';
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-mfmf.onrender.com';
 const REFRESH_ENDPOINT = import.meta.env.VITE_AUTH_REFRESH_ENDPOINT || '/auth/refresh';
 
 let accessToken = null;
