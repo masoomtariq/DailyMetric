@@ -1,20 +1,14 @@
 const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-mfmf.onrender.com';
 const REFRESH_ENDPOINT = import.meta.env.VITE_AUTH_REFRESH_ENDPOINT || '/auth/refresh';
 
-let accessToken = null;
 let refreshPromise = null;
 let sessionExpiredHandler = null;
-
-export const setAccessToken = (token) => {
-  accessToken = token || null;
-};
 
 export const setSessionExpiredHandler = (handler) => {
   sessionExpiredHandler = handler;
 };
 
 const clearSession = () => {
-  accessToken = null;
   if (sessionExpiredHandler) sessionExpiredHandler();
 };
 
@@ -33,11 +27,7 @@ const refreshAccessToken = async (baseUrl) => {
     throw error;
   }
 
-  const data = await response.json();
-  const token = data.access_token || data.accessToken || data.token;
-  if (!token) throw new Error('Token refresh response did not include an access token');
-  accessToken = token;
-  return token;
+  return response;
 };
 
 const getRefreshPromise = (baseUrl) => {
@@ -54,17 +44,12 @@ export const apiRequest = async (endpoint, options = {}, config = {}) => {
   const requestUrl = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
   if (refreshPromise && !config.skipAuthRetry && !config.hasRetried && !isRefreshRequest(endpoint)) {
-    try {
-      await refreshPromise;
-    } catch (error) {
-      throw error;
-    }
+    await refreshPromise;
   }
 
   const headers = new Headers(options.headers || {});
 
   if (!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json');
-  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
 
   const response = await fetch(requestUrl, {
     ...options,
@@ -72,7 +57,12 @@ export const apiRequest = async (endpoint, options = {}, config = {}) => {
     headers,
   });
 
-  if (response.status !== 401 || config.skipAuthRetry || isRefreshRequest(endpoint) || config.hasRetried) {
+  if (response.status !== 401 || config.skipAuthRetry || isRefreshRequest(endpoint)) {
+    return response;
+  }
+
+  if (config.hasRetried) {
+    clearSession();
     return response;
   }
 

@@ -9,6 +9,9 @@ import QuickSetup from './QuickSetup';
 const Layout = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const userLabel = typeof user === 'object'
+    ? user?.name || user?.full_name || user?.phone_number || user?.email || 'User'
+    : user || 'User';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showQuickSetup, setShowQuickSetup] = useState(false);
 
@@ -78,7 +81,7 @@ const Layout = () => {
 
             <div className="flex items-center gap-4 user-menu">
               <div className="text-sm text-slate-600">
-                <span className="font-medium">{user || 'User'}</span>
+                <span className="font-medium">{userLabel}</span>
               </div>
               <button
                 onClick={logout}

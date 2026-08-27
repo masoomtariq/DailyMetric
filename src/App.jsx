@@ -38,7 +38,7 @@ function App() {
               <Login />
             </PublicRoute>
           } />
-          <Route path="/" element={
+          <Route element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>

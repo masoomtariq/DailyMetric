@@ -8,7 +8,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
-  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space');
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-mfmf.onrender.com');
   
   // Login form state
   const [loginPhone, setLoginPhone] = useState('');

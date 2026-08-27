@@ -32,7 +32,7 @@ const GoalDropdown = ({ value, onChange, onFetch, goals }) => {
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://masoomtariq-habit-tracker.hf.space');
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_API_BASE_URL || 'https://habit-tracker-mfmf.onrender.com');
   const [entityType, setEntityType] = useState('goal');
   const [consoleOutput, setConsoleOutput] = useState('Waiting for submissions...');
   const [consoleStatus, setConsoleStatus] = useState('info');
