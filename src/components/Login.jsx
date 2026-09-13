@@ -238,8 +238,8 @@ const Login = () => {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm outline-none transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-100"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Registration Secret</label>
+                  <div> 
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Registration Key</label>
                     <input 
                       type="text" 
                       value={regSecret}
