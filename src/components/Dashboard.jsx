@@ -735,7 +735,7 @@ const resetToCreateMode = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                  Habit Tracker <span className="text-xs bg-primary-500 text-white font-semibold py-0.5 px-2 rounded-full uppercase">Control Panel</span>
+                  DailyMetric <span className="text-xs bg-primary-500 text-white font-semibold py-0.5 px-2 rounded-full uppercase">Control Panel</span>
                 </h1>
                 <p className="text-xs text-primary-200">Interactive standalone client interface</p>
               </div>
@@ -1660,7 +1660,7 @@ const resetToCreateMode = () => {
 
         <footer className="bg-slate-100 border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-auto">
           <div className="max-w-7xl mx-auto px-4">
-            <p>Habit Tracker Backend Control Client &bull; Built in Vanilla JS & Tailwind CSS &bull; Year 2026</p>
+            <p>DailyMetric Backend Control Client &bull; Built in Vanilla JS & Tailwind CSS &bull; Year 2026</p>
           </div>
         </footer>
     </div>

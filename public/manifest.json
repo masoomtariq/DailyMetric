@@ -1,6 +1,6 @@
 {
-  "name": "Habit Tracker",
-  "short_name": "HabitTracker",
+  "name": "DailyMetric",
+  "short_name": "DailyMetric",
   "description": "Track your daily habits and achieve your goals with our intuitive habit tracking application",
   "start_url": "/",
   "display": "standalone",

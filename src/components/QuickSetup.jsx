@@ -40,7 +40,7 @@ const QuickSetup = ({ onComplete, onClose }) => {
       // In a real app, this would call your API to create the selected habits
       // For now, we'll simulate it with localStorage
       const habits = DEFAULT_HABITS.filter(h => selectedHabits.includes(h.id));
-      localStorage.setItem('habit_tracker_quick_setup', JSON.stringify(habits));
+      localStorage.setItem('DailyMetric_quick_setup', JSON.stringify(habits));
       
       showToast('Habits set up successfully!', 'success');
       setTimeout(() => {
@@ -54,7 +54,7 @@ const QuickSetup = ({ onComplete, onClose }) => {
   };
 
   const handleSkip = () => {
-    localStorage.setItem('habit_tracker_quick_setup_skipped', 'true');
+    localStorage.setItem('DailyMetric_quick_setup_skipped', 'true');
     onClose();
   };
 

@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Habit Tracker',
-        short_name: 'HabitTracker',
+        name: 'DailyMetric',
+        short_name: 'DailyMetric',
         description: 'Track your daily habits and achieve your goals with our intuitive habit tracking application',
         theme_color: '#4f46e5',
         background_color: '#ffffff',

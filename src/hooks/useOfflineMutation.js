@@ -2,7 +2,7 @@ import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../context/ToastContext';
 
-const OFFLINE_QUEUE_KEY = 'habit_tracker_offline_queue';
+const OFFLINE_QUEUE_KEY = 'DailyMetric_offline_queue';
 
 export const useOfflineMutation = ({ 
   mutationFn, 

@@ -83,7 +83,7 @@ const Login = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                  Habit Tracker <span className="text-xs bg-primary-500 text-white font-semibold py-0.5 px-2 rounded-full uppercase">Login</span>
+                  DailyMetric <span className="text-xs bg-primary-500 text-white font-semibold py-0.5 px-2 rounded-full uppercase">Login</span>
                 </h1>
                 <p className="text-xs text-primary-200">Authenticate to access control panel</p>
               </div>

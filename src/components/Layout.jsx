@@ -17,8 +17,8 @@ const Layout = () => {
 
   useEffect(() => {
     // Check if user has seen the quick setup
-    const hasSeenQuickSetup = localStorage.getItem('habit_tracker_quick_setup');
-    const hasSkippedQuickSetup = localStorage.getItem('habit_tracker_quick_setup_skipped');
+    const hasSeenQuickSetup = localStorage.getItem('DailyMetric_quick_setup');
+    const hasSkippedQuickSetup = localStorage.getItem('DailyMetric_quick_setup_skipped');
     
     if (!hasSeenQuickSetup && !hasSkippedQuickSetup) {
       // Show quick setup after a short delay
@@ -42,7 +42,7 @@ const Layout = () => {
                 <div className="bg-indigo-600 p-2 rounded-lg">
                   <PlusIcon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-slate-900">Habit Tracker</span>
+                <span className="text-xl font-bold text-slate-900">DailyMetric</span>
               </div>
               
               <nav className="hidden md:flex items-center gap-1">

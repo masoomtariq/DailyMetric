@@ -7,7 +7,7 @@ const OnboardingTour = () => {
 
   useEffect(() => {
     // Check if user has seen the tour before
-    const hasSeenTour = localStorage.getItem('habit_tracker_tour_seen');
+    const hasSeenTour = localStorage.getItem('DailyMetric_tour_seen');
     if (!hasSeenTour) {
       // Small delay to ensure elements are rendered
       const timer = setTimeout(() => {
@@ -61,7 +61,7 @@ const OnboardingTour = () => {
 
   const handleComplete = () => {
     setShowTour(false);
-    localStorage.setItem('habit_tracker_tour_seen', 'true');
+    localStorage.setItem('DailyMetric_tour_seen', 'true');
   };
 
   const handleSkip = () => {

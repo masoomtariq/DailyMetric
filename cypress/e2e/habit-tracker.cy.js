@@ -1,4 +1,4 @@
-describe('Habit Tracker E2E Tests', () => {
+describe('DailyMetric E2E Tests', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     cy.clearLocalStorage();
@@ -7,7 +7,7 @@ describe('Habit Tracker E2E Tests', () => {
 
   it('should display login page', () => {
     cy.visit('/');
-    cy.contains('h1', 'Habit Tracker').should('be.visible');
+    cy.contains('h1', 'DailyMetric').should('be.visible');
     cy.contains('h2', 'Welcome Back').should('be.visible');
     cy.get('input[type="text"]').should('be.visible');
     cy.get('input[type="password"]').should('be.visible');

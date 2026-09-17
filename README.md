@@ -1,3 +1,3 @@
-# Habit Tracker
+# DailyMetric
 
-**A Personal habit tracking app**
+**A Personal Daily tracking app**
